@@ -34,7 +34,7 @@ jobs:
           python3 .github/scripts/configure_unsigned.py
           cat >> .bazelrc <<'BAZEL'
           build --//Telegram:disableProvisioningProfiles
-          build --features=-apple.codesign
+          build --features=disable_legacy_signing
           BAZEL
       - name: Build release arm64
         run: |
