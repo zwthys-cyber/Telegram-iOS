@@ -49,15 +49,18 @@ with tempfile.TemporaryDirectory() as temporary:
             magic = stream.read(4)
         if magic not in magics:
             continue
-        subprocess.run(['codesign', '--remove-signature', str(path)], check=True, capture_output=True)
         loads = output('otool', '-l', str(path))
+        if 'LC_CODE_SIGNATURE' in loads:
+            subprocess.run(['codesign', '--remove-signature', str(path)], check=True, capture_output=True)
+            loads = output('otool', '-l', str(path))
         if 'LC_CODE_SIGNATURE' in loads:
             raise SystemExit(f'Signature remains in {path}')
         archs = output('lipo', '-archs', str(path)).split()
         if 'arm64' not in archs:
             raise SystemExit(f'Missing arm64: {path}')
         platforms = re.findall(r'^\s*platform\s+(\S+)', loads, re.M)
-        if not platforms or any(p not in ('2', 'IOS') for p in platforms):
+        legacy_ios = 'LC_VERSION_MIN_IPHONEOS' in loads and 'LC_VERSION_MIN_MACOSX' not in loads
+        if (not platforms and not legacy_ios) or any(p not in ('2', 'IOS') for p in platforms):
             raise SystemExit(f'Expected iOS device platform: {path}: {platforms}')
         machos.append({'path': str(path.relative_to(root)), 'architectures': archs})
     import shutil
@@ -71,7 +74,8 @@ with tempfile.TemporaryDirectory() as temporary:
     with zipfile.ZipFile(destination) as archive:
         if archive.testzip() is not None:
             raise SystemExit('IPA ZIP CRC verification failed.')
-    digest = hashlib.file_digest(destination.open('rb'), 'sha256').hexdigest()
+    with destination.open('rb') as stream:
+        digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     report = dict(bundle_id=plist['CFBundleIdentifier'], minimum_ios=plist['MinimumOSVersion'],
                   target_ios='26.6', signed=False, sha256=digest, binaries=machos,
                   commit=os.getenv('GITHUB_SHA'), runtime_tested=False,

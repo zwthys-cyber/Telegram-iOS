@@ -618,7 +618,9 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
     }, selectAppIcon: { icon in
         context.sharedContext.applicationBindings.requestSetAlternateIconName(icon.isDefault ? nil : icon.name, { success in
             if success {
-                currentAppIconName.set(icon.name)
+                Queue.mainQueue().async {
+                    currentAppIconName.set(icon.name)
+                }
             }
         })
     }, editTheme: { theme in
