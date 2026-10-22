@@ -8,7 +8,7 @@ The workflow uses the repository's existing public CI API configuration by defau
 
 - All bundled alternate home screen icons can be selected in Settings > Appearance without an icon subscription gate. Selection changes only after iOS reports success.
 - Interface controls already available under Settings > Swiftgram include hiding stories, contacts/calls tabs, and the bottom bar. They remain individually configurable.
-- Message JSON and timestamps with seconds are enabled by default for new installations. JSON provides message IDs, timestamps and media metadata; the existing document viewer provides export for messages permitting sharing. Profile IDs are already enabled upstream.
+- Message JSON and timestamps with seconds are enabled by default for new installations. The message context menu also provides Copy ID and Copy timestamp (ISO 8601 in UTC) for messages permitting copying. JSON provides message IDs, timestamps and media metadata; the existing document viewer provides export for messages permitting sharing. Profile IDs are already enabled upstream.
 - The existing translation service picker and language settings remain available; the quick translation button is enabled by default for new installations.
 - The existing Save to Files context menu action remains enabled. Existing copy/save actions and message JSON provide media shortcuts and information, subject to the source's existing protection rules.
 
