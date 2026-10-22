@@ -1,0 +1,68 @@
+name: Unsigned IPA
+on:
+  workflow_dispatch:
+  push:
+    branches: [ci/unsigned-ipa]
+permissions:
+  contents: read
+concurrency:
+  group: unsigned-ipa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Select pinned Xcode
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')
+          sudo xcode-select -s "/Applications/Xcode_${version}.app/Contents/Developer"
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          df -h .
+      - name: Configure unsigned device build
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: |
+          python3 .github/scripts/configure_unsigned.py
+          cat >> .bazelrc <<'BAZEL'
+          build --//Telegram:disableProvisioningProfiles
+          build --features=-apple.codesign
+          BAZEL
+      - name: Build release arm64
+        run: |
+          set -euo pipefail
+          mkdir -p build/artifacts
+          python3 -u build-system/Make/Make.py \
+            --cacheDir="$RUNNER_TEMP/bazel-cache" \
+            build \
+            --configurationPath=build/unsigned-configuration.json \
+            --xcodeManagedCodesigning \
+            --configuration=release_arm64 \
+            --buildNumber="$GITHUB_RUN_NUMBER" \
+            2>&1 | tee build/build.log
+      - name: Package and verify unsigned IPA
+        run: python3 .github/scripts/package_unsigned.py
+      - name: Upload IPA and verification report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Swiftgram-unsigned-arm64-${{ github.run_number }}
+          path: build/artifacts/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ github.run_number }}-${{ github.run_attempt }}
+          path: build/build.log
+          if-no-files-found: ignore
+          retention-days: 7
