@@ -33,7 +33,6 @@ jobs:
         run: |
           python3 .github/scripts/configure_unsigned.py
           cat >> .bazelrc <<'BAZEL'
-          build --//Telegram:disableProvisioningProfiles
           build --features=disable_legacy_signing
           BAZEL
       - name: Build release arm64
@@ -44,7 +43,7 @@ jobs:
             --cacheDir="$RUNNER_TEMP/bazel-cache" \
             build \
             --configurationPath=build/unsigned-configuration.json \
-            --xcodeManagedCodesigning \
+            --codesigningInformationPath=build-system/fake-codesigning \
             --configuration=release_arm64 \
             --buildNumber="$GITHUB_RUN_NUMBER" \
             2>&1 | tee build/build.log
