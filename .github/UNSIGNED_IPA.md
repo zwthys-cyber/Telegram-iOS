@@ -17,3 +17,7 @@ Existing saved preferences take precedence over new defaults. No server-side Pre
 ## Verification scope
 
 The workflow checks ZIP integrity, the main executable, iPhoneOS platform, minimum OS <= 26.6, arm64 architecture and iOS device platform for every Mach-O, absence of binary signatures, and records SHA256. This is build/package validation, not a physical iPhone 17 Pro Max runtime test. Notifications, app groups and extension behavior also depend on the entitlements provided by the eventual signing method.
+
+## Self-signing and App Groups
+
+Non-App-Store builds can initialize main-app storage in their private Application Support directory when the signer has not provided the required App Group. Builds with a valid App Group continue to use it. Background URL sessions only request shared-container access when that group is available. Extensions and shared notifications still need correctly provisioned App Groups. Signing again with different group access may select a different data container; neither container is deleted or migrated automatically.

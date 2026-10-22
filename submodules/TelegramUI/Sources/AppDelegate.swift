@@ -303,7 +303,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let appGroupName = "group.\(baseAppBundleId)"
 
         let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
-        configuration.sharedContainerIdentifier = appGroupName
+        if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) != nil {
+            configuration.sharedContainerIdentifier = appGroupName
+        }
         configuration.isDiscretionary = false
         let session = URLSession(configuration: configuration, delegate: self, delegateQueue: .main)
         self.urlSessions.append(session)
@@ -547,10 +549,20 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         
         let baseAppBundleId = Bundle.main.bundleIdentifier!
         let appGroupName = "group.\(baseAppBundleId)"
-        let maybeAppGroupUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
-        
         let buildConfig = BuildConfig(baseAppBundleId: baseAppBundleId)
         self.buildConfig = buildConfig
+        let maybeAppGroupUrl: URL?
+        do {
+            let privateContainerURL = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true).appendingPathComponent("Library/Application Support/Swiftgram", isDirectory: true)
+            maybeAppGroupUrl = try resolveApplicationDataContainer(
+                sharedContainerURL: FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName),
+                privateContainerURL: privateContainerURL,
+                allowPrivateContainer: !buildConfig.isAppStoreBuild
+            )
+        } catch {
+            Logger.shared.log("App", "Cannot initialize application storage: \(error)")
+            maybeAppGroupUrl = nil
+        }
         let signatureDict = BuildConfigExtra.signatureDict()
         
         let apiId: Int32 = buildConfig.apiId

@@ -26,6 +26,18 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
           df -h .
+      - name: Verify self-signed storage fallback
+        run: |
+          xcrun swiftc submodules/TelegramUI/Sources/AppStorageContainer.swift .github/scripts/AppStorageContainerTests.swift -o "$RUNNER_TEMP/test-app-storage"
+          "$RUNNER_TEMP/test-app-storage"
+      - name: Restore build cache
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/bazel-cache
+          key: bazel-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock') }}-${{ github.sha }}
+          restore-keys: |
+            bazel-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock') }}-
       - name: Configure unsigned device build
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
@@ -65,3 +77,10 @@ jobs:
           path: build/build.log
           if-no-files-found: ignore
           retention-days: 7
+      - name: Save build cache
+        continue-on-error: true
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/bazel-cache
+          key: bazel-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock') }}-${{ github.sha }}
