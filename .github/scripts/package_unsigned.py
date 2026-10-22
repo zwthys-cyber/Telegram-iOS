@@ -34,6 +34,10 @@ with tempfile.TemporaryDirectory() as temporary:
         raise SystemExit('Minimum OS exceeds requested iOS 26.6.')
     if 'iPhoneOS' not in plist.get('CFBundleSupportedPlatforms', []):
         raise SystemExit('Not an iPhone device build.')
+    alternate_icons = plist.get('CFBundleIcons', {}).get('CFBundleAlternateIcons', {})
+    required_icons = {'SGDefault', 'SGBlack', 'SGLegacy', 'SGInverted', 'SGWhite', 'SGNight', 'SGSky', 'SGTitanium', 'SGNeon', 'SGNeonBlue', 'SGGlass', 'SGSparkling', 'SGBeta', 'SGPro', 'SGGold', 'SGDucky', 'SGDay'}
+    if not required_icons.issubset(alternate_icons):
+        raise SystemExit(f'Missing bundled alternate icons: {required_icons - alternate_icons.keys()}')
     if not (app / plist['CFBundleExecutable']).is_file():
         raise SystemExit('Missing main executable.')
     # Removing signatures from every Mach-O also handles nested extensions/frameworks.
@@ -79,7 +83,7 @@ with tempfile.TemporaryDirectory() as temporary:
     report = dict(bundle_id=plist['CFBundleIdentifier'], minimum_ios=plist['MinimumOSVersion'],
                   target_ios='26.6', signed=False, sha256=digest, binaries=machos,
                   commit=os.getenv('GITHUB_SHA'), runtime_tested=False,
-                  alternate_icons=plist.get('CFBundleIcons', {}).get('CFBundleAlternateIcons', {}))
+                  alternate_icons=alternate_icons)
     (artifacts / 'verification.json').write_text(json.dumps(report, indent=2))
     (artifacts / 'SHA256SUMS.txt').write_text(f'{digest}  {destination.name}\n')
     print(f'Verified {len(machos)} unsigned device binaries. SHA256: {digest}')

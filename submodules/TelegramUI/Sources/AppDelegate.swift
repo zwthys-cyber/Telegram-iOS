@@ -1005,9 +1005,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     PresentationAppIcon(name: "SGSparkling", imageName: "SGSparkling"),
                 ]
 
-                if Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" {
-                    icons.append(PresentationAppIcon(name: "SGBeta", imageName: "SGBeta"))
-                }
+                icons.append(PresentationAppIcon(name: "SGBeta", imageName: "SGBeta"))
                 
                 return icons
             } else {
