@@ -30,6 +30,8 @@ with tempfile.TemporaryDirectory() as temporary:
         raise SystemExit('Expected exactly one main application.')
     app = apps[0]
     plist = plistlib.loads((app / 'Info.plist').read_bytes())
+    if plist.get('SGLocalProFeaturesEnabled') is not True:
+        raise SystemExit('Local Pro feature build flag is missing from the application.')
     if version(plist['MinimumOSVersion']) > version('26.6'):
         raise SystemExit('Minimum OS exceeds requested iOS 26.6.')
     if 'iPhoneOS' not in plist.get('CFBundleSupportedPlatforms', []):
@@ -81,7 +83,7 @@ with tempfile.TemporaryDirectory() as temporary:
     with destination.open('rb') as stream:
         digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     report = dict(bundle_id=plist['CFBundleIdentifier'], minimum_ios=plist['MinimumOSVersion'],
-                  target_ios='26.6', signed=False, sha256=digest, binaries=machos,
+                  target_ios='26.6', signed=False, local_pro_features=plist['SGLocalProFeaturesEnabled'], sha256=digest, binaries=machos,
                   commit=os.getenv('GITHUB_SHA'), runtime_tested=False,
                   alternate_icons=alternate_icons)
     (artifacts / 'verification.json').write_text(json.dumps(report, indent=2))

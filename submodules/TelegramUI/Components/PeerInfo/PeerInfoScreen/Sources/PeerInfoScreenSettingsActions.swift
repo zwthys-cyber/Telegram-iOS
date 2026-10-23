@@ -1,3 +1,4 @@
+import SGSimpleSettings
 import SGStrings
 import SGSettingsUI
 import Foundation
@@ -49,7 +50,7 @@ extension PeerInfoScreenNode {
         case .swiftgram:
             self.controller?.push(sgSettingsController(context: self.context))
         case .swiftgramPro:
-            if self.context.sharedContext.immediateSGStatus.status > 1 {
+            if SGLocalFeatures.canUsePro(serverStatus: self.context.sharedContext.immediateSGStatus.status) {
                 self.controller?.push(self.context.sharedContext.makeSGProController(context: self.context))
             } else {
                 if let payWallController = self.context.sharedContext.makeSGPayWallController(context: self.context) {

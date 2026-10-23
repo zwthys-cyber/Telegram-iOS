@@ -25,7 +25,7 @@ func getAvailableAppBadges() -> [AppBadge] {
         .init(displayName: "Day", assetName: "DayAppBadge"),
     ]
 
-    if SGSimpleSettings.shared.duckyAppIconAvailable {
+    if SGLocalFeatures.proEnabled || SGSimpleSettings.shared.duckyAppIconAvailable {
         appBadges.append(.init(displayName: "Ducky", assetName: "DuckyAppBadge"))
     }
     appBadges += [
@@ -74,7 +74,7 @@ struct AppBadgeSettingsView: View {
     private func onSelectBadge(_ badge: AppBadge) {
         self.selectedBadge = badge
         let image = UIImage(bundleImageName: selectedBadge.assetName) ?? UIImage(bundleImageName: "Components/AppBadge")
-        if self.context.sharedContext.immediateSGStatus.status > 1 {
+        if SGLocalFeatures.canUsePro(serverStatus: self.context.sharedContext.immediateSGStatus.status) {
             DispatchQueue.main.async {
                 SGSimpleSettings.shared.customAppBadge = selectedBadge.assetName
                 self.context.sharedContext.mainWindow?.badgeView.image = image

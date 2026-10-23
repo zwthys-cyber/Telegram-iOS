@@ -1927,6 +1927,15 @@ apple_prebuilt_watchos_application(
     tags = ["manual"],
 )
 
+plist_fragment(
+    name = "LocalProFeaturesInfoPlist",
+    extension = "plist",
+    template = select({
+        "//Swiftgram/SGSimpleSettings:local_pro_features": "<key>SGLocalProFeaturesEnabled</key><true/>",
+        "//conditions:default": "<key>SGLocalProFeaturesEnabled</key><false/>",
+    }),
+)
+
 ios_application(
     name = "Swiftgram",
     bundle_id = "{telegram_bundle_id}".format(
@@ -1940,6 +1949,7 @@ ios_application(
     }),
     entitlements = ":TelegramEntitlements.entitlements",
     infoplists = [
+        ":LocalProFeaturesInfoPlist",
         ":TelegramInfoPlist",
         ":BuildNumberInfoPlist",
         ":VersionInfoPlist",

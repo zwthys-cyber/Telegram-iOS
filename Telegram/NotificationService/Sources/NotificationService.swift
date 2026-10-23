@@ -1,3 +1,4 @@
+import SGSimpleSettings
 import SGAppGroupIdentifier
 import Foundation
 import UserNotifications
@@ -3157,7 +3158,7 @@ extension Customoji {
 
 extension NotificationContent {
     var forceIsEmpty: Bool {
-        if self.sgStatus.status > 1 && !self.isEmpty {
+        if SGLocalFeatures.canUsePro(serverStatus: self.sgStatus.status) && !self.isEmpty {
             if self.isPinned {
                 var desiredAction = PINNED_MESSAGE_ACTION
                 if let chatId = chatId, let exceptionAction = PINNED_MESSAGE_ACTION_EXCEPTIONS["\(chatId)"] {
@@ -3180,7 +3181,7 @@ extension NotificationContent {
         return false
     }
     var forceIsSilent: Bool {
-        if self.sgStatus.status > 1 && !self.silent {
+        if SGLocalFeatures.canUsePro(serverStatus: self.sgStatus.status) && !self.silent {
             if self.isPinned {
                 var desiredAction = PINNED_MESSAGE_ACTION
                 if let chatId = chatId, let exceptionAction = PINNED_MESSAGE_ACTION_EXCEPTIONS["\(chatId)"] {

@@ -55,6 +55,7 @@ jobs:
           python3 .github/scripts/configure_unsigned.py
           cat >> .bazelrc <<'BAZEL'
           build --features=disable_legacy_signing
+          build --define=local_pro_features=true
           BAZEL
       - name: Build release arm64
         run: |

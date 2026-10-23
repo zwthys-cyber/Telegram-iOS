@@ -1,3 +1,4 @@
+import SGSimpleSettings
 import Foundation
 import UIKit
 import AsyncDisplayKit
@@ -1100,7 +1101,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
         
         // MARK: Swiftgram
         let sgStatus = sharedData.entries[ApplicationSpecificSharedDataKeys.sgStatus]?.get(SGStatus.self) ?? SGStatus.default
-        let isPremium = sgStatus.status > 1
+        let isPremium = SGLocalFeatures.canUsePro(serverStatus: sgStatus.status)
         
         let themeReference: PresentationThemeReference
         if presentationData.autoNightModeTriggered {

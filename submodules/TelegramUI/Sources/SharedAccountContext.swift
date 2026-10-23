@@ -4686,6 +4686,9 @@ extension SharedAccountContextImpl {
     }
 
     public func makeSGPayWallController(context: AccountContext) -> ViewController? {
+        if SGLocalFeatures.proEnabled {
+            return self.makeSGProController(context: context)
+        }
         guard #available(iOS 13.0, *) else {
             return nil
         }
