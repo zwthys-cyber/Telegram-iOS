@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings
 import Postbox
 import SwiftSignalKit
 import TelegramApi
@@ -564,26 +565,39 @@ private final class MultipartFetchManager {
             }
         }
         
+        let basePartSize: Int64
+        let baseParallelParts: Int
         if isStory {
-            self.defaultPartSize = 512 * 1024
-            if let size = size, size > self.defaultPartSize {
-                self.parallelParts = 4
+            basePartSize = 512 * 1024
+            if let size = size, size > basePartSize {
+                baseParallelParts = 4
             } else {
-                self.parallelParts = 1
+                baseParallelParts = 1
             }
         } else if let size = size {
             if size <= 512 * 1024 {
-                self.defaultPartSize = 16 * 1024
-                self.parallelParts = 4 * 4
+                basePartSize = 16 * 1024
+                baseParallelParts = 4 * 4
             } else {
-                self.defaultPartSize = 512 * 1024
-                self.parallelParts = 8
+                basePartSize = 512 * 1024
+                baseParallelParts = 8
             }
         } else {
-            self.parallelParts = 1
-            self.defaultPartSize = 128 * 1024
+            baseParallelParts = 1
+            basePartSize = 128 * 1024
         }
         
+        // The V2 kill switch and saved per-account engine preferences may route
+        // cloud files through V1. Apply the global boost here as well.
+        if resource is TelegramCloudMediaResource {
+            self.defaultPartSize = getSGDownloadPartSize(basePartSize, fileSize: size)
+            self.parallelParts = max(baseParallelParts, getSGMaxPendingParts(baseParallelParts))
+            Logger.shared.log("DownloadBoost", "engine=v1 mode=\(SGSimpleSettings.shared.downloadSpeedBoost) partBytes=\(self.defaultPartSize) pending=\(self.parallelParts)")
+        } else {
+            self.defaultPartSize = basePartSize
+            self.parallelParts = baseParallelParts
+        }
+
         if let info = parameters?.info as? TelegramCloudMediaResourceFetchInfo {
             self.fileReference = info.reference.apiFileReference
             self.continueInBackground = info.continueInBackground
@@ -740,6 +754,7 @@ private final class MultipartFetchManager {
     
     
     private func processFloodWaitError(error: String) {
+        Logger.shared.log("DownloadBoost", "engine=v1 serverWait=\(error)")
         var networkSpeedLimitSubject: NetworkSpeedLimitedEvent.DownloadSubject?
         if let location = self.parameters?.location {
             if let messageId = location.messageId {

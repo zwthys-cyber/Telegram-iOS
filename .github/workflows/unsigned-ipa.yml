@@ -39,6 +39,10 @@ jobs:
         run: |
           xcrun swiftc submodules/TelegramUI/Sources/AppStorageContainer.swift .github/scripts/AppStorageContainerTests.swift -o "$RUNNER_TEMP/test-app-storage"
           "$RUNNER_TEMP/test-app-storage"
+      - name: Verify download chunk alignment
+        run: |
+          xcrun swiftc submodules/TelegramCore/Sources/Network/DownloadPartAlignment.swift .github/scripts/DownloadPartAlignmentTests.swift -o "$RUNNER_TEMP/test-download-alignment"
+          "$RUNNER_TEMP/test-download-alignment"
       - name: Restore build cache
         continue-on-error: true
         uses: actions/cache/restore@v4

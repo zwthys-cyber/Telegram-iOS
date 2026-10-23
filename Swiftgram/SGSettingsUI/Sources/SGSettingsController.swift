@@ -551,26 +551,10 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
                 let setAction: (String) -> Void = { value in
                     SGSimpleSettings.shared.downloadSpeedBoost = value
                     
-                    let enableDownloadX: Bool
-                    switch (value) {
-                        case SGSimpleSettings.DownloadSpeedBoostValues.none.rawValue:
-                            enableDownloadX = false
-                        default:
-                            enableDownloadX = true
-                    }
-                    
-                    // Updating controller
+                    // Boost applies to either download engine and every account.
+                    // Keep the existing engine preference and server kill switch.
                     simplePromise.set(true)
-
-                    let _ = updateNetworkSettingsInteractively(postbox: context.account.postbox, network: context.account.network, { settings in
-                        var settings = settings
-                        settings.useExperimentalDownload = enableDownloadX
-                        return settings
-                    }).start(completed: {
-                        Queue.mainQueue().async {
-                            askForRestart?()
-                        }
-                    })
+                    askForRestart?()
                 }
 
                 for value in SGSimpleSettings.DownloadSpeedBoostValues.allCases {
