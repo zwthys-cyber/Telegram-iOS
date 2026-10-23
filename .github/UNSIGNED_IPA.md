@@ -25,3 +25,5 @@ Non-App-Store builds can initialize main-app storage in their private Applicatio
 ## SMS Fee during login
 
 The SMS Fee screen corresponds to Telegram's server-side `auth.sentCodePaymentRequired` response. Removing its UI does not authorize the account. The payment screen uses App Store products, which may be unavailable in a self-signed build. Correct personal API credentials are required, but do not guarantee SMS delivery or exemption from server-side fees. See https://core.telegram.org/api/auth and https://core.telegram.org/api/obtaining_api_id. If an account still has an active session, Telegram may offer a code delivered to that session; available methods are selected by the server.
+
+The SMS Fee screen has an explicit Back button, including when it is the only controller in the login stack. It calls the existing phone-entry reset action so an unfinished payment/login request from a previous build can be abandoned before requesting a new code. This does not mark the payment as completed or bypass server authentication.

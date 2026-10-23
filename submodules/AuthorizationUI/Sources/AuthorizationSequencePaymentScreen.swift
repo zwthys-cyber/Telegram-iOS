@@ -486,6 +486,8 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
 }
 
 public final class AuthorizationSequencePaymentScreen: ViewControllerComponentContainer {
+    private var restartLogin: (() -> Void)?
+
     public init(
         sharedContext: SharedAccountContext,
         engine: TelegramEngineUnauthorized,
@@ -519,6 +521,8 @@ public final class AuthorizationSequencePaymentScreen: ViewControllerComponentCo
         })
         
         self.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
+        self.restartLogin = back
+        self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: presentationData.strings.Common_Back, style: .plain, target: self, action: #selector(self.restartLoginPressed))
         
         
         self.attemptNavigation = { _ in
@@ -543,6 +547,10 @@ public final class AuthorizationSequencePaymentScreen: ViewControllerComponentCo
         super.viewWillAppear(animated)
     }
     
+    @objc private func restartLoginPressed() {
+        self.restartLogin?()
+    }
+
     @objc private func cancelPressed() {
         self.dismiss()
     }
