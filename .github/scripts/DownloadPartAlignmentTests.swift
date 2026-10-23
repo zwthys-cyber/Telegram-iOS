@@ -9,9 +9,11 @@ struct DownloadPartAlignmentTests {
         // Include unaligned seeks, hash boundaries, 1 MiB boundaries and EOF.
         let offsets: [Int64] = [0, 1, 4095, 4096, hashBlock - 1, hashBlock,
                                 boundary - 1, boundary, boundary + 1, 3 * boundary - 1]
-        for partSize in [hashBlock, 512 * 1024, boundary] {
+        let partSizes: [Int64] = [hashBlock, 512 * 1024, boundary]
+        let lengths: [Int64] = [1, 17, hashBlock - 1, hashBlock, 512 * 1024, boundary]
+        for partSize in partSizes {
             for offset in offsets {
-                for length in [Int64(1), 17, hashBlock - 1, hashBlock, 512 * 1024, boundary] {
+                for length in lengths {
                     let requested = offset ..< (offset + min(length, partSize))
                     let result = alignPartFetchRange(
                         partRange: requested,
@@ -37,7 +39,8 @@ struct DownloadPartAlignmentTests {
             }
         }
         // A complete large-file request must actually use the selected chunk size.
-        for partSize in [Int64(512 * 1024), boundary] {
+        let boostedPartSizes: [Int64] = [512 * 1024, boundary]
+        for partSize in boostedPartSizes {
             let result = alignPartFetchRange(partRange: 0 ..< partSize,
                                             minPartSize: hashBlock, maxPartSize: boundary,
                                             alignment: hashBlock, boundaryLimit: boundary)
