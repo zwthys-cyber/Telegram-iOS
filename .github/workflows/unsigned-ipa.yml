@@ -13,6 +13,15 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 350
     steps:
+      - name: Require personal Telegram API credentials
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: |
+          if [[ -z "$TELEGRAM_API_ID" || -z "$TELEGRAM_API_HASH" ]]; then
+            echo "::error::Add TELEGRAM_API_ID and TELEGRAM_API_HASH to repository Actions secrets using credentials for your own application at https://my.telegram.org/apps."
+            exit 1
+          fi
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -79,7 +88,7 @@ jobs:
           retention-days: 7
       - name: Save build cache
         continue-on-error: true
-        if: always()
+        if: ${{ always() && hashFiles('versions.json') != '' }}
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}/bazel-cache
