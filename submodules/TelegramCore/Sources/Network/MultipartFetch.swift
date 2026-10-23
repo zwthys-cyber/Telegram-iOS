@@ -589,7 +589,8 @@ private final class MultipartFetchManager {
         
         // The V2 kill switch and saved per-account engine preferences may route
         // cloud files through V1. Apply the global boost here as well.
-        if resource is TelegramCloudMediaResource {
+        // Unknown-size V1 downloads probe sequentially to establish EOF.
+        if resource is TelegramCloudMediaResource, size != nil {
             self.defaultPartSize = getSGDownloadPartSize(basePartSize, fileSize: size)
             self.parallelParts = max(baseParallelParts, getSGMaxPendingParts(baseParallelParts))
         } else {
