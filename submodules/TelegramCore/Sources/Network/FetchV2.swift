@@ -341,7 +341,6 @@ private final class FetchImpl {
                 self.defaultPartSize = getSGDownloadPartSize(128 * 1024, fileSize: self.size)
             }
             self.cdnPartSize = getSGDownloadPartSize(128 * 1024, fileSize: self.size)
-            Logger.shared.log("DownloadBoost", "engine=v2 mode=\(SGSimpleSettings.shared.downloadSpeedBoost) partBytes=\(self.defaultPartSize) cdnPartBytes=\(self.cdnPartSize) pending=\(getSGMaxPendingParts(6))")
             
             if let resource = resource as? TelegramCloudMediaResource {
                 if let apiInputLocation = resource.apiInputLocation(fileReference: Data()) {
@@ -353,6 +352,8 @@ private final class FetchImpl {
                 self.loggingIdentifier = "unknown"
             }
             
+            Logger.shared.log("DownloadBoost", "engine=v2 mode=\(SGSimpleSettings.shared.downloadSpeedBoost) partBytes=\(self.defaultPartSize) cdnPartBytes=\(self.cdnPartSize) pending=\(getSGMaxPendingParts(6))")
+
             self.update()
             
             self.requiredRangesDisposable = (intervals

@@ -592,7 +592,6 @@ private final class MultipartFetchManager {
         if resource is TelegramCloudMediaResource {
             self.defaultPartSize = getSGDownloadPartSize(basePartSize, fileSize: size)
             self.parallelParts = max(baseParallelParts, getSGMaxPendingParts(baseParallelParts))
-            Logger.shared.log("DownloadBoost", "engine=v1 mode=\(SGSimpleSettings.shared.downloadSpeedBoost) partBytes=\(self.defaultPartSize) pending=\(self.parallelParts)")
         } else {
             self.defaultPartSize = basePartSize
             self.parallelParts = baseParallelParts
@@ -637,6 +636,9 @@ private final class MultipartFetchManager {
         self.partReady = partReady
         self.reportCompleteSize = reportCompleteSize
         self.finishWithError = finishWithError
+        if resource is TelegramCloudMediaResource {
+            Logger.shared.log("DownloadBoost", "engine=v1 mode=\(SGSimpleSettings.shared.downloadSpeedBoost) partBytes=\(self.defaultPartSize) pending=\(self.parallelParts)")
+        }
         
         /*if resource.id.stringRepresentation == "telegram-cloud-document-1-4922941873166746479" {
             let tempRanges = Promise<[(Range<Int64>, MediaBoxFetchPriority)]>()
