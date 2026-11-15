@@ -1593,6 +1593,21 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         let showJsonAction = sgMakeContextMenuAction(.json(controllerInteraction: controllerInteraction, context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)
         if SGSimpleSettings.shared.contextShowJson {
             actions.append(showJsonAction)
+            if BYPlugin.isEnabled(.messageTools) && !isCopyProtected {
+                actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ContextMenuCopy + " ID", icon: { theme in
+                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor)
+                }, action: { _, f in
+                    UIPasteboard.general.string = String(message.id.id)
+                    f(.default)
+                })))
+                let timestamp = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: TimeInterval(message.timestamp)))
+                actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ContextMenuCopy + " · " + timestamp, icon: { theme in
+                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor)
+                }, action: { _, f in
+                    UIPasteboard.general.string = timestamp
+                    f(.default)
+                })))
+            }
         } else {
             sgActions.append(showJsonAction)
         }

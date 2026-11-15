@@ -328,7 +328,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let appGroupName = "group.\(baseAppBundleId)"
 
         let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
-        configuration.sharedContainerIdentifier = appGroupName
+        if !BYPlugin.isEnabled(.privateStorage) || FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) != nil {
+            configuration.sharedContainerIdentifier = appGroupName
+        }
         configuration.isDiscretionary = false
         let session = URLSession(configuration: configuration, delegate: self, delegateQueue: .main)
         self.urlSessions.append(session)
@@ -599,7 +601,18 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             BuildConfig.keychainAccessGroup(baseAppBundleId: baseAppBundleId)
         })
         NSLog("[SG.Launch] Resolving app-group container") // MARK: Swiftgram
-        let maybeAppGroupUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
+        let maybeAppGroupUrl: URL?
+        do {
+            let privateContainerURL = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true).appendingPathComponent("Library/Application Support/Swiftgram", isDirectory: true)
+            maybeAppGroupUrl = try resolveApplicationDataContainer(
+                sharedContainerURL: FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName),
+                privateContainerURL: privateContainerURL,
+                allowPrivateContainer: BYPlugin.isEnabled(.privateStorage) && !BuildConfig(baseAppBundleId: baseAppBundleId).isAppStoreBuild
+            )
+        } catch {
+            Logger.shared.log("App", "Cannot initialize application storage: \(error)")
+            maybeAppGroupUrl = nil
+        }
         NSLog("[SG.Launch] App-group container resolved: \(maybeAppGroupUrl != nil)") // MARK: Swiftgram
         
         let buildConfig = BuildConfig(baseAppBundleId: baseAppBundleId)
@@ -1067,14 +1080,14 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     PresentationAppIcon(isSGPro: true, name: "SGPro", imageName: "SGPro"),
                     PresentationAppIcon(isSGPro: true, name: "SGDay", imageName: "SGDay"),
                     PresentationAppIcon(isSGPro: true, name: "SGGold", imageName: "SGGold"),
-                    SGSimpleSettings.shared.duckyAppIconAvailable ? PresentationAppIcon(isSGPro: true, name: "SGDucky", imageName: "SGDucky") : PresentationAppIcon(name: "", imageName: ""), // Empty
+                    (BYPlugin.isEnabled(.icons) || SGSimpleSettings.shared.duckyAppIconAvailable) ? PresentationAppIcon(isSGPro: true, name: "SGDucky", imageName: "SGDucky") : PresentationAppIcon(name: "", imageName: ""), // Empty
                     PresentationAppIcon(name: "SGNeon", imageName: "SGNeon"),
                     PresentationAppIcon(name: "SGNeonBlue", imageName: "SGNeonBlue"),
                     PresentationAppIcon(name: "SGGlass", imageName: "SGGlass"),
                     PresentationAppIcon(name: "SGSparkling", imageName: "SGSparkling"),
                 ]
 
-                if Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" {
+                if BYPlugin.isEnabled(.icons) || Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" {
                     icons.append(PresentationAppIcon(name: "SGBeta", imageName: "SGBeta"))
                 }
                 //

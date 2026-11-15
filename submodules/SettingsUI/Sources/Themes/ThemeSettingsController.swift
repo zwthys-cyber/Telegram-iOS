@@ -1,3 +1,4 @@
+import SGSimpleSettings
 import Foundation
 import UIKit
 import AsyncDisplayKit
@@ -555,7 +556,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
     }
     
     let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
-    if premiumConfiguration.isPremiumDisabled || context.account.testingEnvironment {
+    if !BYPlugin.isEnabled(.icons) && (premiumConfiguration.isPremiumDisabled || context.account.testingEnvironment) {
         appIcons = appIcons.filter { !$0.isPremium } 
     }
     
@@ -650,6 +651,16 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
             return current.withUpdatedShowNextMediaOnTap(value)
         }).start()
     }, selectAppIcon: { icon in
+        if BYPlugin.isEnabled(.icons) {
+            context.sharedContext.applicationBindings.requestSetAlternateIconName(icon.isDefault ? nil : icon.name, { success in
+                if success {
+                    Queue.mainQueue().async {
+                        currentAppIconName.set(icon.name)
+                    }
+                }
+            })
+            return
+        }
         let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
         |> deliverOnMainQueue).start(next: { peer in
             let isPremium = peer?.isPremium ?? false
@@ -1155,7 +1166,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
         
         // MARK: Swiftgram
         let sgStatus = sharedData.entries[ApplicationSpecificSharedDataKeys.sgStatus]?.get(SGStatus.self) ?? SGStatus.default
-        let isPremium = sgStatus.status > 1
+        let isPremium = BYPlugin.isEnabled(.icons) || sgStatus.status > 1
         
         let bubbleMode = settings.chatBubbleSettings.bubbleMode
         

@@ -6,59 +6,6 @@ import MtProtoKit
 import RangeSet
 internal import TelegramApi
 
-private let possiblePartLengths: [Int64] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576]
-
-private func alignPartFetchRange(partRange: Range<Int64>, minPartSize: Int64, maxPartSize: Int64, alignment: Int64, boundaryLimit: Int64) -> (partRange: Range<Int64>, fetchRange: Range<Int64>) {
-    var partRange = partRange
-    
-    let lowerPartitionIndex = partRange.lowerBound / boundaryLimit
-    let upperPartitionIndex = (partRange.upperBound - 1) / boundaryLimit
-    if lowerPartitionIndex != upperPartitionIndex {
-        partRange = partRange.lowerBound ..< (upperPartitionIndex * boundaryLimit)
-    }
-    
-    let absolutePartLowerBound = (partRange.lowerBound / boundaryLimit) * boundaryLimit
-    let absolutePartUpperBound = absolutePartLowerBound + boundaryLimit
-    let maxPartRange = absolutePartLowerBound ..< absolutePartUpperBound
-    
-    let alignedPartLowerBound = (partRange.lowerBound / alignment) * alignment
-    let alignmentDifference = partRange.lowerBound - alignedPartLowerBound
-    if (partRange.upperBound - alignmentDifference) > partRange.lowerBound {
-        partRange = partRange.lowerBound ..< (partRange.upperBound - alignmentDifference)
-    }
-    
-    var selectedPartLength: Int64?
-    if minPartSize == maxPartSize {
-        assert(possiblePartLengths.contains(minPartSize))
-        selectedPartLength = minPartSize
-    } else {
-        for partLength in possiblePartLengths {
-            if partLength >= minPartSize && partLength <= maxPartSize && partLength >= partRange.upperBound - alignedPartLowerBound {
-                selectedPartLength = partLength
-                break
-            }
-        }
-    }
-    
-    guard let fetchPartLength = selectedPartLength else {
-        preconditionFailure()
-    }
-    
-    var fetchRange = alignedPartLowerBound ..< (alignedPartLowerBound + fetchPartLength)
-    
-    if fetchRange.upperBound > maxPartRange.upperBound {
-        fetchRange = (maxPartRange.upperBound - fetchPartLength) ..< maxPartRange.upperBound
-    }
-    
-    assert(fetchRange.lowerBound >= maxPartRange.lowerBound)
-    assert(fetchRange.lowerBound % alignment == 0)
-    assert(possiblePartLengths.contains(fetchRange.upperBound - fetchRange.lowerBound))
-    assert(fetchRange.lowerBound <= partRange.lowerBound && fetchRange.upperBound >= partRange.upperBound)
-    assert(fetchRange.lowerBound / boundaryLimit == (fetchRange.upperBound - 1) / boundaryLimit)
-    
-    return (partRange, fetchRange)
-}
-
 // The bytes of a file still to fetch, one set per priority (`MediaBoxFetchPriority.rawValue`). A range asked for at several
 // priorities is only in the highest one, so it is fetched once.
 func fetchV2PriorityRanges(required: [(range: Range<Int64>, priority: Int)], knownSize: Int64?, excluded: RangeSet<Int64>) -> [RangeSet<Int64>] {
@@ -509,14 +456,17 @@ private final class FetchImpl {
             } else {
                 self.defaultPartSize = getSGDownloadPartSize(128 * 1024, fileSize: self.size) // MARK: Swiftgram
             }
-            self.cdnPartSize = 128 * 1024
+            self.cdnPartSize = BYPlugin.downloadPartSize(128 * 1024, fileSize: self.size, mode: SGSimpleSettings.shared.downloadSpeedBoost)
             // MARK: Swiftgram
             self.masterPendingParts = self.fastDownloads ? fastDownloadMasterPendingParts : getSGMaxPendingParts(6)
-            self.cdnPendingParts = self.fastDownloads ? fastDownloadCdnPendingParts : getSGMaxPendingParts(6)
+            self.cdnPendingParts = BYPlugin.pendingParts(self.fastDownloads ? fastDownloadCdnPendingParts : getSGMaxPendingParts(6), mode: SGSimpleSettings.shared.downloadSpeedBoost)
             //
             
             // The resource id tells concurrent downloads apart; an Api value prints only its constructor name.
             self.loggingIdentifier = resource.id.stringRepresentation
+            if BYPlugin.isEnabled(.downloadBoost) {
+                Logger.shared.log("DownloadBoost", "engine=v2 mode=\(SGSimpleSettings.shared.downloadSpeedBoost) partBytes=\(self.defaultPartSize) cdnPartBytes=\(self.cdnPartSize) pending=\(self.cdnPendingParts)")
+            }
             
             self.update()
             
@@ -788,9 +738,9 @@ private final class FetchImpl {
                         self.state = .fetching(FetchImpl.FetchingState(
                             fetchLocation: .cdn(cdnData),
                             partSize: self.cdnPartSize,
-                            minPartSize: self.cdnPartSize,
-                            maxPartSize: self.cdnPartSize * 2,
-                            partAlignment: self.cdnPartSize,
+                            minPartSize: 128 * 1024,
+                            maxPartSize: min(self.cdnPartSize * 2, 1024 * 1024),
+                            partAlignment: 128 * 1024,
                             partDivision: 1 * 1024 * 1024,
                             maxPendingParts: self.cdnPendingParts,
                             decryptionState: nil
@@ -1080,9 +1030,9 @@ private final class FetchImpl {
                         let cdnState = FetchImpl.FetchingState(
                             fetchLocation: .cdn(cdnData),
                             partSize: self.cdnPartSize,
-                            minPartSize: self.cdnPartSize,
-                            maxPartSize: self.cdnPartSize * 2,
-                            partAlignment: self.cdnPartSize,
+                            minPartSize: 128 * 1024,
+                            maxPartSize: min(self.cdnPartSize * 2, 1024 * 1024),
+                            partAlignment: 128 * 1024,
                             partDivision: 1 * 1024 * 1024,
                             maxPendingParts: self.cdnPendingParts,
                             decryptionState: nil
@@ -1381,6 +1331,9 @@ private final class FetchImpl {
         }
         
         private func processFloodWaitError(error: String) {
+            if BYPlugin.isEnabled(.downloadBoost) {
+                Logger.shared.log("DownloadBoost", "engine=v2 serverWait=\(error)")
+            }
             var networkSpeedLimitSubject: NetworkSpeedLimitedEvent.DownloadSubject?
             if let location = self.parameters?.location {
                 if let messageId = location.messageId {

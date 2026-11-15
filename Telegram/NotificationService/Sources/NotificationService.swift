@@ -1,3 +1,4 @@
+import SGSimpleSettings
 import SGAppGroupIdentifier // MARK: Swiftgram
 import Foundation
 import PasscodeCore
@@ -3348,7 +3349,7 @@ extension Customoji {
 // MARK: Swiftgram
 extension NotificationContent {
     var forceIsEmpty: Bool {
-        if self.sgStatus.status > 1 && !self.isEmpty {
+        if SGLocalFeatures.canUsePro(serverStatus: self.sgStatus.status) && !self.isEmpty {
             if self.isPinned {
                 var desiredAction = sgPinnedMessageAction
                 if let chatId = chatId, let exceptionAction = sgPinnedMessageActionExceptions["\(chatId)"] {
@@ -3371,7 +3372,7 @@ extension NotificationContent {
         return false
     }
     var forceIsSilent: Bool {
-        if self.sgStatus.status > 1 && !self.silent {
+        if SGLocalFeatures.canUsePro(serverStatus: self.sgStatus.status) && !self.silent {
             if self.isPinned {
                 var desiredAction = sgPinnedMessageAction
                 if let chatId = chatId, let exceptionAction = sgPinnedMessageActionExceptions["\(chatId)"] {

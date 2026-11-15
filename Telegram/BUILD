@@ -2080,6 +2080,12 @@ apple_prebuilt_watchos_application(
     tags = ["manual"],
 )
 
+plist_fragment(
+    name = "BYPluginHostInfoPlist",
+    extension = "plist",
+    template = "<key>BYPluginHostABI</key><integer>1</integer>",
+)
+
 ios_application(
     name = "Swiftgram", # MARK: Swiftgram
     bundle_id = "{telegram_bundle_id}".format(
@@ -2093,6 +2099,7 @@ ios_application(
     }),
     entitlements = ":TelegramEntitlements.entitlements",
     infoplists = [
+        ":BYPluginHostInfoPlist",
         ":TelegramInfoPlist",
         ":BuildNumberInfoPlist",
         ":VersionInfoPlist",

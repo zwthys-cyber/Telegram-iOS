@@ -563,6 +563,11 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             case .downloadSpeedBoost:
                 let setAction: (String) -> Void = { value in
                     SGSimpleSettings.shared.downloadSpeedBoost = value
+                    if BYPlugin.isEnabled(.downloadBoost) {
+                        simplePromise.set(true)
+                        askForRestart?()
+                        return
+                    }
                     
                     let enableDownloadX: Bool
                     switch (value) {
