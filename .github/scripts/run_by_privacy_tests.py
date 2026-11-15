@@ -28,6 +28,8 @@ phases = [
     ("suite", None, {}),
     ("mutant-missing-deletion-capture", "BYPrivacyHistoryTests/testReplayKeepsVersionsAndDeletionWithoutKeepingDeletedChatMessages", {}),
     ("restored-deletion-capture", "BYPrivacyHistoryTests/testReplayKeepsVersionsAndDeletionWithoutKeepingDeletedChatMessages", {}),
+    ("mutant-live-location-receipt", "BYPrivacyHistoryTests/testLiveLocationReceiptsAreSuppressedForUserAndChannelWithoutReplay", {}),
+    ("restored-live-location-receipt", "BYPrivacyHistoryTests/testLiveLocationReceiptsAreSuppressedForUserAndChannelWithoutReplay", {}),
 ] if mode == "suite" else []
 if mode in ("small", "large"):
     first = int(sys.argv[2]) if len(sys.argv) > 2 else 1
@@ -45,13 +47,20 @@ status = 0
 summary = []
 replay_path = Path("submodules/TelegramCore/Sources/State/Sync/StateReplay+Messages.swift")
 replay_original = replay_path.read_text()
+location_path = Path("submodules/TelegramCore/Sources/State/AccountViewTracker.swift")
+location_original = location_path.read_text()
 for name, test_filter, environment in phases:
     mutant = name.startswith("mutant-")
-    if mutant:
+    if name == "mutant-missing-deletion-capture":
         hook = "        byArchiveDeletedMessages(transaction: transaction, ids: transaction.messageIdsForGlobalIds(ids))"
         if replay_original.count(hook) != 1:
             raise SystemExit("Mutation target changed; review the regression check.")
         replay_path.write_text(replay_original.replace(hook, "        // Test mutant: deletion capture deliberately disabled."))
+    if name == "mutant-live-location-receipt":
+        hook = "    let messageIds = messageIds.filter { !bySuppressContentRead(transaction: transaction, id: $0) }"
+        if location_original.count(hook) != 1:
+            raise SystemExit("Live-location mutation target changed; review the regression check.")
+        location_path.write_text(location_original.replace(hook, "    let messageIds = messageIds.filter { _ in true }"))
     options = "\ntest --test_timeout=21600\ntest --test_output=all\n"
     options += "".join(f"test --test_env={key}={value}\n" for key, value in environment.items())
     Path(".bazelrc").write_text(original_rc + options)
@@ -63,6 +72,7 @@ for name, test_filter, environment in phases:
             print(line, end="", flush=True)
         code = process.wait()
     replay_path.write_text(replay_original)
+    location_path.write_text(location_original)
     testlog = Path("bazel-testlogs/submodules/TelegramCore/TelegramCoreTests/test.log")
     if testlog.exists():
         shutil.copy2(testlog, out / (name + ".test.log"))
@@ -75,8 +85,9 @@ for name, test_filter, environment in phases:
             print("ERROR: no executed XCTest cases in test.log", flush=True)
             code = code or 1
         if mutant:
-            expected_failure = code != 0 and "XCTAssertNotNil failed" in text
-            print("Deletion regression mutant detected:", expected_failure, flush=True)
+            marker = "XCTAssertFalse failed" if name == "mutant-live-location-receipt" else "XCTAssertNotNil failed"
+            expected_failure = code != 0 and marker in text
+            print(name + " detected:", expected_failure, flush=True)
             code = 0 if expected_failure else 1
         summary.extend(summaries)
         if "TRUTH_SEEDS" in environment:

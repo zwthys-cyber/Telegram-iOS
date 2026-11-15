@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 5
+      max-parallel: 4
       matrix:
         include:
           - { label: suite, mode: suite, first: 0, last: 0 }

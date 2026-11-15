@@ -7,6 +7,8 @@ on:
     paths-ignore:
       - '**/*.md'
       - '.github/workflows/by-cancel-stale-build.yml'
+      - '.github/workflows/by-privacy-*.yml'
+      - '.github/scripts/run_by_privacy_tests.py'
   push:
     branches:
       - upgrade/swiftgram-13.2.1-by-plugin
@@ -14,6 +16,8 @@ on:
     paths-ignore:
       - '**/*.md'
       - '.github/workflows/by-cancel-stale-build.yml'
+      - '.github/workflows/by-privacy-*.yml'
+      - '.github/scripts/run_by_privacy_tests.py'
 permissions:
   contents: read
 concurrency:
