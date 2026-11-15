@@ -4,12 +4,17 @@ if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
   echo "Build this project with GitHub Actions; local builds are disabled by project policy." >&2
   exit 1
 fi
+features="${BY_PLUGIN_FEATURES:-63}"
+case "$features" in
+  [0-9]|[1-5][0-9]|6[0-3]) ;;
+  *) echo "BY_PLUGIN_FEATURES must be an integer from 0 to 63." >&2; exit 1 ;;
+esac
 output_dir="${1:-build/plugin}"
 mkdir -p "$output_dir"
 xcrun --sdk iphoneos clang \
   -target arm64-apple-ios15.0 \
   -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
-  -dynamiclib -O2 -Wall -Wextra -Werror -fvisibility=hidden \
+  -dynamiclib -DBY_PLUGIN_FEATURES="$features" -O2 -Wall -Wextra -Werror -fvisibility=hidden \
   -install_name @rpath/BYPlugin.dylib \
   -Wl,-no_adhoc_codesign \
   Plugins/BYPlugin/Sources/BYPlugin.c -o "$output_dir/BYPlugin.dylib"
