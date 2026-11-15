@@ -11,7 +11,7 @@ xcrun swiftc -warnings-as-errors \
   Plugins/BYPlugin/Tests/BridgeTests.swift -o "$test_dir/bridge-tests"
 "$test_dir/bridge-tests" absent
 for scenario in enabled disabled incompatible; do
-  extra=()
+  extra=(-DBY_PLUGIN_FEATURES=63)
   if [[ "$scenario" == "disabled" ]]; then extra=(-DBY_PLUGIN_FEATURES=0); fi
   if [[ "$scenario" == "incompatible" ]]; then extra=(-DBY_PLUGIN_ABI=2); fi
   xcrun clang -dynamiclib -Wall -Wextra -Werror -fvisibility=hidden \
