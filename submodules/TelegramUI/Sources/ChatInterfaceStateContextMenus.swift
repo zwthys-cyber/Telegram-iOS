@@ -1540,12 +1540,20 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             if let mediaReference = mediaReference {
                 actions.append(.action(ContextMenuActionItem(text: isVideo ? chatPresentationInterfaceState.strings.Gallery_SaveVideo : chatPresentationInterfaceState.strings.Gallery_SaveImage, icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.actionSheet.primaryTextColor)
-                }, action: { _, f in
+                }, action: { menu, f in
                     if byAllowsLocalSaving {
-                        byExportMediaLocally(context: context, message: message, media: mediaReference.media, toFiles: false, present: { c in
-                            controllerInteraction.presentControllerInCurrent(c, nil)
-                        })
-                        f(.default)
+                        let snapshot = BYLocalMediaSnapshot(context: context, message: message, media: mediaReference.media)
+                        let export = {
+                            byExportMediaLocally(context: context, message: message, media: mediaReference.media, snapshot: snapshot, toFiles: false, present: { c in
+                                controllerInteraction.presentControllerInCurrent(c, nil)
+                            })
+                        }
+                        if let menu {
+                            menu.dismiss(completion: export)
+                        } else {
+                            f(.default)
+                            export()
+                        }
                         return
                     }
                     let _ = (saveToCameraRoll(context: context, userLocation: .peer(message.id.peerId), mediaReference: mediaReference)
@@ -1582,15 +1590,24 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     if file.isMusic || (byAllowsLocalSaving && resourceAvailable) {
                         actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_SaveToFiles, icon: { theme in
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.actionSheet.primaryTextColor)
-                        }, action: { _, f in
+                        }, action: { menu, f in
                             if byAllowsLocalSaving {
-                                byExportMediaLocally(context: context, message: message, media: file, toFiles: true, present: { c in
-                                    controllerInteraction.presentControllerInCurrent(c, nil)
-                                })
+                                let snapshot = BYLocalMediaSnapshot(context: context, message: message, media: file)
+                                let export = {
+                                    byExportMediaLocally(context: context, message: message, media: file, snapshot: snapshot, toFiles: true, present: { c in
+                                        controllerInteraction.presentControllerInCurrent(c, nil)
+                                    })
+                                }
+                                if let menu {
+                                    menu.dismiss(completion: export)
+                                } else {
+                                    f(.default)
+                                    export()
+                                }
                             } else {
                                 controllerInteraction.saveMediaToFiles(message.id)
+                                f(.default)
                             }
-                            f(.default)
                         })))
                     }
                     break

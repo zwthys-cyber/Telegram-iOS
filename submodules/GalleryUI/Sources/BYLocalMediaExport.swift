@@ -69,7 +69,7 @@ public func byExportMediaLocally(context: AccountContext, message: EngineRawMess
             ]))
         }
     }
-    let retainedSnapshot = media == nil && snapshot?.message.id == message.id ? snapshot : nil
+    let retainedSnapshot = snapshot?.message.id == message.id ? snapshot : nil
     guard let export = retainedSnapshot ?? BYLocalMediaSnapshot(context: context, message: message, media: media) else {
         showMessage(i18n("Settings.BYPlugin.DownloadFirst", lang))
         return
