@@ -30,8 +30,11 @@ phases = [
     ("restored-deletion-capture", "BYPrivacyHistoryTests/testReplayKeepsVersionsAndDeletionWithoutKeepingDeletedChatMessages", {}),
 ] if mode == "suite" else []
 if mode in ("small", "large"):
-    last = 5000 if mode == "small" else 1000
-    for start in range(1, last + 1, 250):
+    first = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+    last = int(sys.argv[3]) if len(sys.argv) > 3 else (5000 if mode == "small" else 1000)
+    if first < 1 or first > last:
+        raise SystemExit("Invalid truth seed range.")
+    for start in range(first, last + 1, 250):
         end = min(start + 249, last)
         phases.append((f"{mode}-{start}-{end}", "TruthSessionTests/testRandomSessionsLong", {
             "TRUTH_SEEDS": f"{start}-{end}", "TRUTH_SHAPE": mode,
