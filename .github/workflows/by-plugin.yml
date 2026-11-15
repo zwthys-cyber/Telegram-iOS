@@ -10,7 +10,8 @@ permissions:
   contents: read
 concurrency:
   group: by-plugin-${{ github.ref }}
-  cancel-in-progress: true
+  # Let the running build save its cache; keep only the newest pending revision.
+  cancel-in-progress: false
 jobs:
   plugin:
     name: Build and verify injected plugin
