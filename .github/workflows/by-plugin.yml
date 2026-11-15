@@ -93,17 +93,7 @@ jobs:
           restore-keys: |
             by-bazel-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock', '.gitmodules') }}-
       - name: Build complete release arm64 app
-        run: |
-          set -euo pipefail
-          mkdir -p build/artifacts
-          python3 -u build-system/Make/Make.py \
-            --cacheDir="$RUNNER_TEMP/bazel-cache" \
-            build \
-            --configurationPath=build/unsigned-configuration.json \
-            --codesigningInformationPath=build-system/fake-codesigning \
-            --configuration=release_arm64 \
-            --buildNumber="$GITHUB_RUN_NUMBER" \
-            2>&1 | tee build/build.log
+        run: python3 -u .github/scripts/build_by_release.py
       - name: Package and verify base IPA
         run: python3 .github/scripts/package_unsigned.py
       - uses: actions/upload-artifact@v4
@@ -124,8 +114,19 @@ jobs:
           path: build/build.log
           if-no-files-found: ignore
           retention-days: 7
+      - name: Stop Bazel before archiving its cache
+        if: always()
+        id: stop_bazel
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          for executable in Path("build-input").glob("bazel-*-darwin-arm64"):
+              subprocess.run([str(executable.resolve()), "shutdown"], check=True, timeout=60)
+          PY
       - name: Save Bazel cache
-        if: ${{ always() && steps.cache.outputs.cache-hit != 'true' }}
+        if: ${{ always() && steps.stop_bazel.outcome == 'success' && steps.cache.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@v4
         with:

@@ -17,7 +17,12 @@ jobs:
           BUILD_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          status=$(gh api "repos/$BUILD_REPOSITORY/actions/runs/43715796249" --jq '.status')
+          status=$(gh api "repos/$BUILD_REPOSITORY/actions/runs/43721592639" --jq '.status')
           if [ "$status" != completed ]; then
-            gh api --method POST "repos/$BUILD_REPOSITORY/actions/runs/43715796249/cancel"
+            gh api --method POST "repos/$BUILD_REPOSITORY/actions/runs/43721592639/cancel"
           fi
+      - name: Inspect available release caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_REPOSITORY: ${{ github.repository }}
+        run: gh api "repos/$BUILD_REPOSITORY/actions/caches?per_page=100" --jq '.actions_caches[] | {key, ref, size_in_bytes}'
