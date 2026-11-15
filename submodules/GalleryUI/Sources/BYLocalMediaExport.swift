@@ -20,13 +20,14 @@ public final class BYLocalMediaSnapshot {
     fileprivate let isVideo: Bool
     fileprivate var url: URL { URL(fileURLWithPath: self.file.path) }
 
-    public init?(context: AccountContext, message: EngineRawMessage) {
+    public init?(context: AccountContext, message: EngineRawMessage, media: EngineRawMedia? = nil) {
         guard message.byAllowsLocalSaving else { return nil }
         var resource: TelegramMediaResource?
         var name = "Photo.jpg"
         var isImage = false
         var isVideo = false
-        for media in message.effectiveMedia {
+        let mediaItems = media.map { [$0] } ?? message.effectiveMedia
+        for media in mediaItems {
             if let image = media as? TelegramMediaImage, let representation = largestImageRepresentation(image.representations) {
                 resource = representation.resource
                 isImage = true
@@ -57,7 +58,7 @@ public final class BYLocalMediaSnapshot {
 }
 
 /// Explicit local export of one downloaded resource; never forwards to Telegram.
-public func byExportMediaLocally(context: AccountContext, message: EngineRawMessage, snapshot: BYLocalMediaSnapshot? = nil, toFiles: Bool, present: @escaping (ViewController) -> Void) {
+public func byExportMediaLocally(context: AccountContext, message: EngineRawMessage, media: EngineRawMedia? = nil, snapshot: BYLocalMediaSnapshot? = nil, toFiles: Bool, present: @escaping (ViewController) -> Void) {
     guard message.byAllowsLocalSaving else { return }
     let presentationData = context.sharedContext.currentPresentationData.with { $0 }
     let lang = presentationData.strings.baseLanguageCode
@@ -68,8 +69,8 @@ public func byExportMediaLocally(context: AccountContext, message: EngineRawMess
             ]))
         }
     }
-    let retainedSnapshot = snapshot?.message.id == message.id ? snapshot : nil
-    guard let export = retainedSnapshot ?? BYLocalMediaSnapshot(context: context, message: message) else {
+    let retainedSnapshot = media == nil && snapshot?.message.id == message.id ? snapshot : nil
+    guard let export = retainedSnapshot ?? BYLocalMediaSnapshot(context: context, message: message, media: media) else {
         showMessage(i18n("Settings.BYPlugin.DownloadFirst", lang))
         return
     }

@@ -4,6 +4,7 @@ import SwiftSignalKit
 import AccountContext
 import ItemListUI
 import TelegramPresentationData
+import PresentationDataUtils
 import SGItemListUI
 import SGSimpleSettings
 import SGStrings

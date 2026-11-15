@@ -1542,7 +1542,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.actionSheet.primaryTextColor)
                 }, action: { _, f in
                     if byAllowsLocalSaving {
-                        byExportMediaLocally(context: context, message: message, toFiles: false, present: { c in
+                        byExportMediaLocally(context: context, message: message, media: mediaReference.media, toFiles: false, present: { c in
                             controllerInteraction.presentControllerInCurrent(c, nil)
                         })
                         f(.default)
@@ -1584,7 +1584,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.actionSheet.primaryTextColor)
                         }, action: { _, f in
                             if byAllowsLocalSaving {
-                                byExportMediaLocally(context: context, message: message, toFiles: true, present: { c in
+                                byExportMediaLocally(context: context, message: message, media: file, toFiles: true, present: { c in
                                     controllerInteraction.presentControllerInCurrent(c, nil)
                                 })
                             } else {
