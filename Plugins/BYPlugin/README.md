@@ -75,16 +75,22 @@ GitHub 使用最新 macOS 27 ARM64 环境 `xcode-27`，从上游 `versions.json`
 
 完整保留原有图标、徽标、本地功能、下载分块、签名存储、密码与登录适配。统一入口增加功能能力状态、输入工具栏、设置页隐藏号码和通话确认，沿用已有偏好；原有功能没有重置。
 
-- 幽灵模式按账号保存，提供总开关及在线、输入/录音/上传、云端聊天已读、动态观看四个独立选项，默认全部关闭。更改在线选项会更新当前在线任务；秘密聊天已读、真实通话参与状态、阅后即焚/一次性媒体消费仍保留上游语义。普通云端聊天/论坛/评论阅读不推进本地已读；已排队的云端已读和动态回执在发送侧被丢弃，不延迟到关闭后补发。主动发消息、回应动态、其他客户端和后续阅读仍可能显示活动或确认较早的消息。
+- 幽灵模式在已注入插件的主应用内按账号保存，提供总开关及在线、输入/录音/上传、云端聊天已读、动态观看四个独立选项，默认全部关闭。更改在线选项会更新当前在线任务；秘密聊天已读、真实通话参与状态、阅后即焚/一次性媒体消费仍保留上游语义。普通云端聊天/论坛/评论阅读不推进本地已读；已排队的云端已读和动态回执在发送侧被丢弃，不延迟到关闭后补发。主动发消息、回应动态、其他客户端和后续阅读仍可能显示活动或确认较早的消息。系统集成与应用扩展使用独立进程，不保证继承主应用的隐私开关。
 - 防撤回与编辑历史分别开启，默认关闭。历史存于当前账号的 Postbox 偏好数据，随账号数据容器隔离；不上传、不写入普通日志。先存本机可用的旧版本，再执行正常删除/编辑和 pts 同步。
 - 历史内容是文字、说明、附件名称/类型/标识；**不归档媒体文件本体**。付费、秘密聊天和定时/一次性内容不进入自动历史，原有手动保存功能继续保留。
 - 历史页支持全文/聊天/发送者搜索、只看撤回、分页、按消息看旧版、复制文本、二次确认清理。保留期限 7/30/90 天，最多 500 条、每条 10 版、总 JSON 编码 2 MiB。超限清最旧条目；期限在写入和进入历史页时清理。关闭记录不自动删除历史。未收到的原文和此前已销毁的数据无法恢复。
 - 旧版 127/63 功能位仍兼容，新功能必须用本次 IPA 和 dylib 配套。缺失/旧版/禁用/不兼容插件均不会启用新隐私策略。已有历史仍可查看和删除。
 
-### 本次验证
-仅在 GitHub Actions 编译与测试。初始 ABI/策略/历史模型预检已通过，后续完整应用和真实 Postbox 集成结果以当前提交的 Actions 为准。
-当前会话未提供 XcodeBuildMCP，因此手机交互仍需安装者验证；不把编译或 CLI 模拟器测试称为 UI 验收。
-预期界面：所有新开关初始关闭，旧值保留；切换账号后互不影响；历史列表分页稳定，中文/英文、浅/深色长文本不裁切；清理前二次确认；禁用插件后原有聊天行为恢复。
+### 本次验证（2026-11-15）
+
+验证源码为 `effd6e8`，全部在 GitHub Actions 的 macOS 27.0.1 ARM64 / Xcode 27.1 执行，当前服务器未编译、未测试。
+
+- [完整构建与插件验证](https://github.com/zwthys-cyber/Telegram-iOS/actions/runs/43723617556)：宿主和 iOS 模拟器的缺失／正常／旧版／关闭／不兼容 ABI 场景通过；实际 arm64 dylib 的功能位为 511。下载对齐、存储／密码、历史容量和语法检查通过。
+- [真实 Postbox 与同步验证](https://github.com/zwthys-cyber/Telegram-iOS/actions/runs/43723612877)：909 项 XCTest，1 项长测单独执行，0 失败；9 项 BY 隐私与历史测试全部通过。临时移除删除归档或实时位置回执拦截时，测试按预期失败，恢复后通过。
+- 普通规模随机同步场景 seeds 1–5000 全部通过；大账号加延迟场景 seeds 1–1000 全部通过，均无消息同步差异。最后一组的 XCTest 已通过，但原 CI 的摘要解析因 stdout/stderr 交错误报失败；[原始产物复核与解析器回归](https://github.com/zwthys-cyber/Telegram-iOS/actions/runs/43738054224) 确认该组 250 个编号完整、不重复、每项成功，汇总 `failing=0 kinds=[]`。修复仍拒绝缺失、重复、非成功场景及 XCTest／进程失败。[修复后脚本的实际运行](https://github.com/zwthys-cyber/Telegram-iOS/actions/runs/43738054287) 也通过了大账号／延迟场景 751–752。后续纯 CI 改动执行此小范围实际验证；应用源码改动及手动运行仍执行完整套件和 6000 个场景。
+- 完整 Release 编译、IPA CRC／SHA-256 和 12 个设备二进制的架构／无签名校验通过。构建缓存已保存；产物包含 SHA256SUMS 和 verification.json。临时验证 PR #4 的构建树与上述源码相同。
+
+未使用真机交互工具，CLI 模拟器测试不代表界面验收。安装后请确认新开关默认关闭、旧值保留、账号间隔离，以及中文／英文、浅／深色页面和长文本显示正常。可用两个自有测试账号验证普通消息编辑／撤回和幽灵开关；撤回记录通过统一历史入口查看。搜索、分页、复制和清理确认需在手机上检查。付费、秘密聊天和定时媒体不进入自动历史，原有手动保存流程保留。
 
 ### Representative feature references
 
@@ -92,4 +98,4 @@ Compared on 2026-11-15 against the projects' own descriptions:
 - [AyuGram releases](https://github.com/AyuGram/AyuGramDesktop/releases) describe per-account Ghost Mode and local deletion/history controls. [Its saving guide](https://github.com/AyuGram/AyuGramDocs/blob/main/desktop/saving.md) distinguishes stored text history from media preservation.
 - [Nicegram's Ghost Mode guide](https://nicegram.app/articles/ghost) describes last-seen privacy plus chat preview, including the limits of sending/typing while hidden.
 
-BYPlugin implements independent per-account activity/read/story toggles and a bounded local history viewer. It does not change Telegram's server privacy settings automatically. Sending messages, calls, another logged-in client, and requests already sent can still reveal activity. New privacy/history switches default off; earlier local-saving and interface preferences are retained. History only captures versions this device actually had; missing past versions and media bytes cannot be recovered by this viewer.
+BYPlugin implements independent per-account activity/read/story toggles in the injected main app and a bounded local history viewer. App extensions and system integrations do not automatically inherit these main-app privacy settings. It does not change Telegram's server privacy settings automatically. Sending messages, calls, another logged-in client, and requests already sent can still reveal activity. New privacy/history switches default off; earlier local-saving and interface preferences are retained. History only captures versions this device actually had; missing past versions and media bytes cannot be recovered by this viewer.

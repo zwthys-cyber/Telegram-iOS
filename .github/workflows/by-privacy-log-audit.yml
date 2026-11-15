@@ -1,9 +1,30 @@
-name: BYPlugin recorded truth log audit
+name: BYPlugin truth log validation
 on:
   push:
     branches: [upgrade/by-plugin-privacy-history]
     paths: ['.github/workflows/by-privacy-log-audit.yml', '.github/scripts/verify_by_truth_log.py', '.github/scripts/test_by_truth_log.py']
   workflow_dispatch:
+    inputs:
+      run_id:
+        description: Completed source run containing the recorded test artifact
+        type: string
+        required: true
+      artifact_name:
+        description: Artifact name from that run
+        type: string
+        required: true
+      log_prefix:
+        description: Recorded log filename without .log or .test.log
+        type: string
+        required: true
+      first_seed:
+        description: First expected seed
+        type: number
+        required: true
+      last_seed:
+        description: Last expected seed
+        type: number
+        required: true
 permissions:
   contents: read
   actions: read
@@ -15,16 +36,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@v4
-        with:
-          name: by-privacy-tests-large-4-8-1
-          run-id: 43723612877
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: build/recorded-tests
       - name: Verify parser rejection cases
         run: python3 .github/scripts/test_by_truth_log.py
-      - name: Verify all recorded large-4 seeds and original XCTest result
+      - uses: actions/download-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: ${{ inputs.artifact_name }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: build/recorded-tests
+      - name: Verify recorded seed coverage and original XCTest result
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          LOG_PREFIX: ${{ inputs.log_prefix }}
+          FIRST_SEED: ${{ inputs.first_seed }}
+          LAST_SEED: ${{ inputs.last_seed }}
         run: |
           python3 .github/scripts/verify_by_truth_log.py \
-            build/recorded-tests/large-751-1000.test.log 751 1000 \
-            --build-log build/recorded-tests/large-751-1000.log
+            "build/recorded-tests/$LOG_PREFIX.test.log" "$FIRST_SEED" "$LAST_SEED" \
+            --build-log "build/recorded-tests/$LOG_PREFIX.log"
