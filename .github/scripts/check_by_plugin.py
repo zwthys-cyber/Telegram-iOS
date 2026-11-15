@@ -18,4 +18,6 @@ for path in Path(".github/scripts").glob("*.py"):
     py_compile.compile(str(path), doraise=True)
 for path in Path("Plugins/BYPlugin").glob("*.sh"):
     subprocess.run(["bash", "-n", str(path)], check=True)
-print("Adapter syntax, Python scripts and shell scripts checked.")
+for locale in ("en", "zh-hans", "zh-hant"):
+    subprocess.run(["plutil", "-lint", f"Swiftgram/SGStrings/Strings/{locale}.lproj/SGLocalizable.strings"], check=True)
+print("Adapter syntax, localization, Python scripts and shell scripts checked.")

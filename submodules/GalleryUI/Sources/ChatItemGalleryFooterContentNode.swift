@@ -173,6 +173,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
     private var currentMessageText: NSAttributedString?
     
     private var currentMessage: EngineRawMessage?
+    private var byLocalSaveOnly = false
     private var currentWebPageAndMedia: (TelegramMediaWebpage, EngineRawMedia)?
     private var mediaSubject: GalleryMediaSubject?
     private let messageContextDisposable = MetaDisposable()
@@ -836,6 +837,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
     }
     
     func setup(origin: GalleryItemOriginData?, caption: NSAttributedString, isAd: Bool = false) {
+        self.byLocalSaveOnly = false
         var titleText = origin?.title
         
         let caption = caption.mutableCopy() as! NSMutableAttributedString
@@ -973,6 +975,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
         if message.containsSecretMedia {
             canDelete = false
         }
+        self.byLocalSaveOnly = !canShare && message.byAllowsLocalSaving && mediaSubject == nil && message.effectiveMedia.count == 1 && message.effectiveMedia.contains { $0 is TelegramMediaImage || $0 is TelegramMediaFile }
         
         if let _ = message.adAttribute {
             displayInfo = false
@@ -1088,7 +1091,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             }
             displayDeleteButton = canDelete
 
-            displayActionButton = canShare
+            displayActionButton = canShare || self.byLocalSaveOnly
             displayEditButton = canEdit
             
             if let adAttribute = message.adAttribute {
@@ -1826,6 +1829,14 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
     
     @objc func actionButtonPressed() {
         self.interacting?(true)
+        if self.byLocalSaveOnly {
+            if let message = self.currentMessage {
+                byExportMediaLocally(context: self.context, message: message, toFiles: false, present: { [weak self] c in
+                    self?.controllerInteraction?.presentController(c, nil)
+                })
+            }
+            return
+        }
         
         if let currentMessage = self.currentMessage {
             let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Messages.MessageGroup(id: currentMessage.id))

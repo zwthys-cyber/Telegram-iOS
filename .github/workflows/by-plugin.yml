@@ -31,6 +31,8 @@ jobs:
           sw_vers
       - name: Verify injection ABI and migrated policies
         run: bash Plugins/BYPlugin/test.sh
+      - name: Verify iOS simulator injection and local saving policies
+        run: bash Plugins/BYPlugin/test-simulator.sh
       - name: Check adapter Swift syntax
         run: python3 .github/scripts/check_by_plugin.py
       - name: Build injectable arm64 dylib

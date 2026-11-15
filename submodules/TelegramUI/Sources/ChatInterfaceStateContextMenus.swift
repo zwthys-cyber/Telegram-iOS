@@ -15,6 +15,7 @@ import ContextUI
 import LegacyUI
 import AppBundle
 import SaveToCameraRoll
+import GalleryUI
 import PresentationDataUtils
 import TelegramPresentationData
 import TelegramStringFormatting
@@ -743,7 +744,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     }
                 }
             } else if let image = media as? TelegramMediaImage {
-                if !messages[0].containsSecretMedia {
+                if !messages[0].containsSecretMedia || messages[0].byAllowsLocalSaving {
                     loadCopyMediaResource = largestImageRepresentation(image.representations)?.resource
                 }
             } else if let dice = media as? TelegramMediaDice {
@@ -1362,13 +1363,19 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         }
         
         let isCopyProtected = chatPresentationInterfaceState.copyProtectionEnabled || message.isCopyProtected()
+        let byAllowsLocalSaving = message.byAllowsLocalSaving
+        let isLocalCopyProtected = isCopyProtected && !byAllowsLocalSaving
         if !messageText.isEmpty || richMessageMarkdown != nil || (resourceAvailable && isImage) || diceEmoji != nil {
             if !isExpired {
                 if !isPoll {
-                    if !isCopyProtected {
+                    if !isLocalCopyProtected {
                         actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ContextMenuCopy, icon: { theme in
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor)
                         }, action: { _, f in
+                            guard !isCopyProtected || message.byAllowsLocalSaving else {
+                                f(.default)
+                                return
+                            }
                             if let diceEmoji = diceEmoji {
                                 UIPasteboard.general.string = diceEmoji
                             } else {
@@ -1517,7 +1524,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             }
         }
         
-        if resourceAvailable, !message.containsSecretMedia && !isCopyProtected {
+        if resourceAvailable, (!message.containsSecretMedia && !isCopyProtected) || byAllowsLocalSaving {
             var mediaReference: AnyMediaReference?
             var isVideo = false
             for media in message.effectiveMedia {
@@ -1533,7 +1540,22 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             if let mediaReference = mediaReference {
                 actions.append(.action(ContextMenuActionItem(text: isVideo ? chatPresentationInterfaceState.strings.Gallery_SaveVideo : chatPresentationInterfaceState.strings.Gallery_SaveImage, icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.actionSheet.primaryTextColor)
-                }, action: { _, f in
+                }, action: { menu, f in
+                    if byAllowsLocalSaving {
+                        let snapshot = BYLocalMediaSnapshot(context: context, message: message, media: mediaReference.media)
+                        let export = {
+                            byExportMediaLocally(context: context, message: message, media: mediaReference.media, snapshot: snapshot, toFiles: false, present: { c in
+                                controllerInteraction.presentControllerInCurrent(c, nil)
+                            })
+                        }
+                        if let menu {
+                            menu.dismiss(completion: export)
+                        } else {
+                            f(.default)
+                            export()
+                        }
+                        return
+                    }
                     let _ = (saveToCameraRoll(context: context, userLocation: .peer(message.id.peerId), mediaReference: mediaReference)
                              |> deliverOnMainQueue).startStandalone(completed: {
                         Queue.mainQueue().after(0.2) {
@@ -1562,15 +1584,30 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             }
         }
         
-        if !isCopyProtected {
+        if !isLocalCopyProtected {
             for media in message.effectiveMedia {
                 if let file = media as? TelegramMediaFile {
-                    if file.isMusic {
+                    if file.isMusic || (byAllowsLocalSaving && resourceAvailable) {
                         actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_SaveToFiles, icon: { theme in
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.actionSheet.primaryTextColor)
-                        }, action: { _, f in
-                            controllerInteraction.saveMediaToFiles(message.id)
-                            f(.default)
+                        }, action: { menu, f in
+                            if byAllowsLocalSaving {
+                                let snapshot = BYLocalMediaSnapshot(context: context, message: message, media: file)
+                                let export = {
+                                    byExportMediaLocally(context: context, message: message, media: file, snapshot: snapshot, toFiles: true, present: { c in
+                                        controllerInteraction.presentControllerInCurrent(c, nil)
+                                    })
+                                }
+                                if let menu {
+                                    menu.dismiss(completion: export)
+                                } else {
+                                    f(.default)
+                                    export()
+                                }
+                            } else {
+                                controllerInteraction.saveMediaToFiles(message.id)
+                                f(.default)
+                            }
                         })))
                     }
                     break

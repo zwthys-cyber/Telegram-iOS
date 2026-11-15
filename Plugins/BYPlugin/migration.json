@@ -32,7 +32,14 @@
     "submodules/TelegramUI/Sources/AppDelegate.swift",
     "submodules/TelegramUI/Sources/AppStorageContainer.swift",
     "submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift",
-    "submodules/TelegramUI/Sources/SharedAccountContext.swift"
+    "submodules/TelegramUI/Sources/SharedAccountContext.swift",
+    "submodules/TelegramCore/Sources/Utils/BYLocalSaving.swift",
+    "submodules/GalleryUI/Sources/BYLocalMediaExport.swift",
+    "submodules/GalleryUI/BUILD",
+    "Swiftgram/SGSettingsUI/Sources/BYPluginSettingsController.swift",
+    "submodules/GalleryUI/Sources/ChatItemGalleryFooterContentNode.swift",
+    "submodules/GalleryUI/Sources/SecretMediaPreviewController.swift",
+    "submodules/TelegramUI/Sources/Chat/ChatControllerOpenViewOnceMediaMessage.swift"
   ],
   "verification": "See GitHub Actions for actual results; device installation is not implied."
 }
