@@ -138,8 +138,8 @@ extension ChatControllerImpl {
                 generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.actionSheet.primaryTextColor)
             }, action: { [weak self] _, _ in
                 guard let self else { return }
-                byExportMediaLocally(context: self.context, message: message._asMessage(), snapshot: exportSnapshot, toFiles: true, present: { [weak self] c in
-                    self?.present(c, in: .window(.root))
+                byExportMediaLocally(context: self.context, message: message._asMessage(), snapshot: exportSnapshot, toFiles: true, present: { c in
+                    presentImpl?(c)
                 })
             })))
         }
