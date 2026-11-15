@@ -697,7 +697,7 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
         }
         switch (link) {
             case .byPlugin:
-                pushControllerImpl?(byPluginSettingsController(context: context))
+                pushControllerImpl?(byPluginSettingsController(context: context, updated: { simplePromise.set(true) }))
             case .languageSettings:
                 pushControllerImpl?(context.sharedContext.makeLocalizationListController(context: context))
             case .contentSettings:

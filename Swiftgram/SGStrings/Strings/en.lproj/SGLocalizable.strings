@@ -297,7 +297,7 @@
 "Settings.BYPlugin.Title" = "BYPlugin Settings";
 "Settings.BYPlugin.LocalSaving" = "Local copy and saving";
 "Settings.BYPlugin.LocalSaving.Notice" = "Allow copying and saving downloaded content from protected chats, including disappearing and view-once media while accessible. Paid content keeps its original behavior. Long-press a message or use Save while viewing. This does not restore expired content or change server forwarding rights.";
-"Settings.BYPlugin.SaveMenu" = "Show Save in the main message menu";
+"Settings.BYPlugin.SaveMenu" = "Photo/video Save in main menu";
 "Settings.BYPlugin.Status.Active" = "BYPlugin is loaded. Manage local saving, message tools and download enhancement here.";
 "Settings.BYPlugin.Status.Missing" = "BYPlugin is not loaded or is incompatible. Inject the matching dylib when signing the app to enable plugin features.";
 "Settings.BYPlugin.Status.Legacy" = "BYPlugin is loaded, but this build does not enable local saving. Use the matching updated plugin.";

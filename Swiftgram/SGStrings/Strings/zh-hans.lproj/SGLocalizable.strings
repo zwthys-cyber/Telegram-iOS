@@ -260,7 +260,7 @@
 "Settings.BYPlugin.Title" = "BYPlugin 设置";
 "Settings.BYPlugin.LocalSaving" = "本地复制与保存";
 "Settings.BYPlugin.LocalSaving.Notice" = "允许复制和保存受限聊天中已下载的内容，包括仍能打开的阅后即焚、一次性媒体。付费内容保持原样。长按消息，或观看时点击保存。不能恢复已销毁内容，服务器转发权限保持原样。";
-"Settings.BYPlugin.SaveMenu" = "在消息主菜单显示保存";
+"Settings.BYPlugin.SaveMenu" = "主菜单显示图片／视频保存";
 "Settings.BYPlugin.Status.Active" = "BYPlugin 已加载。这里统一管理本地保存、消息工具和下载增强。";
 "Settings.BYPlugin.Status.Missing" = "BYPlugin 未加载或不兼容。请在签名时注入配套动态库以启用插件功能。";
 "Settings.BYPlugin.Status.Legacy" = "BYPlugin 已加载，但当前插件未启用本地保存。请使用配套的新版插件。";

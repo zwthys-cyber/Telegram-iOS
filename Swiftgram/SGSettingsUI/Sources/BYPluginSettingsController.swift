@@ -25,7 +25,7 @@ private enum BYToggle: Hashable {
 private enum BYSelector: Hashable { case downloadMode }
 private typealias BYEntry = SGItemListUIEntry<BYSection, BYToggle, Int, BYSelector, Int, Int>
 
-func byPluginSettingsController(context: AccountContext) -> ViewController {
+func byPluginSettingsController(context: AccountContext, updated: @escaping () -> Void = {}) -> ViewController {
     let refresh = ValuePromise(true, ignoreRepeated: false)
     var selectImpl: (([SGOneFromManyOption]) -> Void)?
     let arguments = SGItemListArguments<BYToggle, Int, BYSelector, Int, Int>(
@@ -39,6 +39,7 @@ func byPluginSettingsController(context: AccountContext) -> ViewController {
             case .quickTranslate: SGSimpleSettings.shared.quickTranslateButton = value
             }
             refresh.set(true)
+            updated()
         },
         setOneFromManyValue: { _ in
             let lang = context.sharedContext.currentPresentationData.with { $0.strings.baseLanguageCode }
@@ -46,6 +47,7 @@ func byPluginSettingsController(context: AccountContext) -> ViewController {
                 SGOneFromManyOption(title: i18n("Settings.DownloadsBoost.\(mode.rawValue)", lang), isSelected: SGSimpleSettings.shared.downloadSpeedBoost == mode.rawValue, action: {
                     SGSimpleSettings.shared.downloadSpeedBoost = mode.rawValue
                     refresh.set(true)
+                    updated()
                 })
             })
         }
