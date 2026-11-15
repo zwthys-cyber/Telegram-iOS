@@ -596,8 +596,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         
         let baseAppBundleId = Bundle.main.bundleIdentifier!
         let appGroupName = "group.\(baseAppBundleId)"
+        let buildConfig = BuildConfig(baseAppBundleId: baseAppBundleId)
+        self.buildConfig = buildConfig
+        let sharedAppGroupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
+        let usePrivateAppData = BYPlugin.isEnabled(.privateStorage) && !buildConfig.isAppStoreBuild && sharedAppGroupURL == nil
         NSLog("[SG.Launch] Configuring passcode environment") // MARK: Swiftgram
-        try! PasscodeEnvironment.shared.configure(PasscodeConfiguration(appGroupIdentifier: appGroupName, processRole: .mainApp, biometricKeychainService: walletBiometricKeychainService), privateAccessGroup: {
+        try! PasscodeEnvironment.shared.configure(PasscodeConfiguration(appGroupIdentifier: appGroupName, processRole: .mainApp, biometricKeychainService: walletBiometricKeychainService, usePrivateKeychainForAppData: usePrivateAppData), privateAccessGroup: {
             BuildConfig.keychainAccessGroup(baseAppBundleId: baseAppBundleId)
         })
         NSLog("[SG.Launch] Resolving app-group container") // MARK: Swiftgram
@@ -605,9 +609,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         do {
             let privateContainerURL = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true).appendingPathComponent("Library/Application Support/Swiftgram", isDirectory: true)
             maybeAppGroupUrl = try resolveApplicationDataContainer(
-                sharedContainerURL: FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName),
+                sharedContainerURL: sharedAppGroupURL,
                 privateContainerURL: privateContainerURL,
-                allowPrivateContainer: BYPlugin.isEnabled(.privateStorage) && !BuildConfig(baseAppBundleId: baseAppBundleId).isAppStoreBuild
+                allowPrivateContainer: usePrivateAppData
             )
         } catch {
             Logger.shared.log("App", "Cannot initialize application storage: \(error)")
@@ -615,8 +619,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
         NSLog("[SG.Launch] App-group container resolved: \(maybeAppGroupUrl != nil)") // MARK: Swiftgram
         
-        let buildConfig = BuildConfig(baseAppBundleId: baseAppBundleId)
-        self.buildConfig = buildConfig
         let signatureDict = BuildConfigExtra.signatureDict()
         
         let apiId: Int32 = buildConfig.apiId
