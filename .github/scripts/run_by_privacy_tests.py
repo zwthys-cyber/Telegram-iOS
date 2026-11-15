@@ -24,7 +24,11 @@ make = [sys.executable, "-u", "build-system/Make/Make.py",
         "--configurationPath=build/unsigned-configuration.json",
         "--codesigningInformationPath=build-system/fake-codesigning",
         "--target=//submodules/TelegramCore:TelegramCoreTests"]
-phases = [("suite", None, {})] if mode == "suite" else []
+phases = [
+    ("suite", None, {}),
+    ("mutant-missing-deletion-capture", "BYPrivacyHistoryTests/testReplayKeepsVersionsAndDeletionWithoutKeepingDeletedChatMessages", {}),
+    ("restored-deletion-capture", "BYPrivacyHistoryTests/testReplayKeepsVersionsAndDeletionWithoutKeepingDeletedChatMessages", {}),
+] if mode == "suite" else []
 if mode in ("small", "large"):
     last = 5000 if mode == "small" else 1000
     for start in range(1, last + 1, 250):
@@ -36,7 +40,15 @@ if mode in ("small", "large"):
         }))
 status = 0
 summary = []
+replay_path = Path("submodules/TelegramCore/Sources/State/Sync/StateReplay+Messages.swift")
+replay_original = replay_path.read_text()
 for name, test_filter, environment in phases:
+    mutant = name.startswith("mutant-")
+    if mutant:
+        hook = "        byArchiveDeletedMessages(transaction: transaction, ids: transaction.messageIdsForGlobalIds(ids))"
+        if replay_original.count(hook) != 1:
+            raise SystemExit("Mutation target changed; review the regression check.")
+        replay_path.write_text(replay_original.replace(hook, "        // Test mutant: deletion capture deliberately disabled."))
     options = "\ntest --test_timeout=21600\ntest --test_output=all\n"
     options += "".join(f"test --test_env={key}={value}\n" for key, value in environment.items())
     Path(".bazelrc").write_text(original_rc + options)
@@ -47,13 +59,24 @@ for name, test_filter, environment in phases:
             stream.write(line)
             print(line, end="", flush=True)
         code = process.wait()
+    replay_path.write_text(replay_original)
     testlog = Path("bazel-testlogs/submodules/TelegramCore/TelegramCoreTests/test.log")
     if testlog.exists():
         shutil.copy2(testlog, out / (name + ".test.log"))
         text = testlog.read_text(errors="replace")
+        for line in text.splitlines():
+            if "Executed " in line or ("BYPrivacyHistoryTests" in line and ("passed" in line or "failed" in line)) or "TRUTH summary" in line:
+                print(line, flush=True)
         summaries = re.findall(r"TRUTH summary[^\r\n]*", text)
+        if not re.search(r"Executed [1-9]\d* tests?", text):
+            print("ERROR: no executed XCTest cases in test.log", flush=True)
+            code = code or 1
+        if mutant:
+            expected_failure = code != 0 and "XCTAssertNotNil failed" in text
+            print("Deletion regression mutant detected:", expected_failure, flush=True)
+            code = 0 if expected_failure else 1
         summary.extend(summaries)
-        if test_filter:
+        if "TRUTH_SEEDS" in environment:
             seeds = re.findall(r"TRUTH seed=(\d+)", text)
             expected = int(environment["TRUTH_SEEDS"].split("-")[1]) - int(environment["TRUTH_SEEDS"].split("-")[0]) + 1
             if len(set(seeds)) != expected or not summaries or not any("failing=0" in line for line in summaries):
