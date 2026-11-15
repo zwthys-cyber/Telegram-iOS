@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings
 import SwiftSignalKit
 import Postbox
 internal import TelegramApi
@@ -2108,6 +2109,7 @@ func _internal_deleteStories(account: Account, peerId: PeerId, ids: [Int32]) -> 
 }
 
 func _internal_markStoryAsSeen(account: Account, peerId: PeerId, id: Int32, asPinned: Bool) -> Signal<Never, NoError> {
+    if BYPrivacy.effective(account.peerId.toInt64()).hideStoryViews { return .complete() }
     if asPinned {
         return account.postbox.transaction { transaction -> Api.InputPeer? in
             return transaction.getPeer(peerId).flatMap(apiInputPeer)

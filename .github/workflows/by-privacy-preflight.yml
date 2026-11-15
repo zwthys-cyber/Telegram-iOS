@@ -1,0 +1,26 @@
+name: BYPlugin privacy preflight
+on:
+  push:
+    branches: [upgrade/by-plugin-privacy-history]
+permissions:
+  contents: read
+concurrency:
+  group: by-privacy-preflight
+  cancel-in-progress: false
+jobs:
+  policies:
+    runs-on: xcode-27
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Select upstream Xcode
+        run: sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+      - name: Find all receipt and activity senders
+        run: |
+          rg -n 'Api.functions.(messages.(setTyping|setEncryptedTyping|readHistory|readDiscussion|readSavedHistory|readMessageContents)|channels.(readHistory|readMessageContents)|stories.(readStories|incrementStoryViews)|account.updateStatus)' submodules/TelegramCore/Sources || true
+      - name: Verify ABI, storage, privacy and history
+        run: bash Plugins/BYPlugin/test.sh
+      - name: Parse changed Swift adapters
+        run: python3 .github/scripts/check_by_plugin.py

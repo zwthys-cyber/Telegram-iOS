@@ -39,7 +39,22 @@
     "Swiftgram/SGSettingsUI/Sources/BYPluginSettingsController.swift",
     "submodules/GalleryUI/Sources/ChatItemGalleryFooterContentNode.swift",
     "submodules/GalleryUI/Sources/SecretMediaPreviewController.swift",
-    "submodules/TelegramUI/Sources/Chat/ChatControllerOpenViewOnceMediaMessage.swift"
+    "submodules/TelegramUI/Sources/Chat/ChatControllerOpenViewOnceMediaMessage.swift",
+    "submodules/TelegramCore/Sources/Utils/BYPrivacyPolicy.swift",
+    "submodules/TelegramCore/Sources/State/ManagedAccountPresence.swift",
+    "submodules/TelegramCore/Sources/Account/Account.swift",
+    "submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift",
+    "submodules/TelegramCore/Sources/State/SynchronizePeerReadState.swift",
+    "submodules/TelegramCore/Sources/TelegramEngine/Messages/ApplyMaxReadIndexInteractively.swift",
+    "submodules/TelegramCore/Sources/TelegramEngine/Messages/ReplyThreadHistory.swift",
+    "submodules/TelegramCore/Sources/TelegramEngine/Messages/Stories.swift",
+    "submodules/TelegramCore/Sources/State/ManagedSynchronizeViewStoriesOperations.swift",
+    "Swiftgram/SGSimpleSettings/Sources/BYHistoryModel.swift",
+    "submodules/TelegramCore/Sources/Utils/BYMessageHistory.swift",
+    "submodules/TelegramCore/Sources/State/Sync/StateReplay+Messages.swift",
+    "submodules/TelegramCore/Sources/State/StoredMessageConfirmation.swift",
+    "submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkMessageContentAsConsumedInteractively.swift"
   ],
-  "verification": "See GitHub Actions for actual results; device installation is not implied."
+  "verification": "See GitHub Actions for actual results; device installation is not implied.",
+  "plugin_version": "2.0"
 }

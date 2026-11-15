@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings
 internal import TelegramApi
 import Postbox
 import SwiftSignalKit
@@ -10,6 +11,7 @@ private typealias SignalKitTimer = SwiftSignalKit.Timer
 private final class AccountPresenceManagerImpl {
     private let queue: Queue
     private let network: Network
+    private let accountId: Int64
     let isPerformingUpdate = ValuePromise<Bool>(false, ignoreRepeated: true)
     
     private var shouldKeepOnlinePresenceDisposable: Disposable?
@@ -18,11 +20,13 @@ private final class AccountPresenceManagerImpl {
     
     private var wasOnline: Bool = false
     
-    init(queue: Queue, shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network) {
+    init(queue: Queue, shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network, accountId: Int64) {
         self.queue = queue
         self.network = network
+        self.accountId = accountId
         
-        self.shouldKeepOnlinePresenceDisposable = (shouldKeepOnlinePresence
+        self.shouldKeepOnlinePresenceDisposable = (combineLatest(shouldKeepOnlinePresence, byPrivacyChanges(accountId: accountId))
+        |> map { online, _ in online && !BYPrivacy.effective(accountId).hideOnline }
         |> distinctUntilChanged
         |> deliverOn(self.queue)).start(next: { [weak self] value in
             guard let `self` = self else {
@@ -43,6 +47,7 @@ private final class AccountPresenceManagerImpl {
     }
     
     private func updatePresence(_ isOnline: Bool) {
+        let isOnline = isOnline && !BYPrivacy.effective(self.accountId).hideOnline
         let request: Signal<Api.Bool, MTRpcError>
         if isOnline {
             let timer = SignalKitTimer(timeout: 30.0, repeat: false, completion: { [weak self] in
@@ -77,10 +82,10 @@ final class AccountPresenceManager {
     private let queue = Queue()
     private let impl: QueueLocalObject<AccountPresenceManagerImpl>
     
-    init(shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network) {
+    init(shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network, accountId: Int64) {
         let queue = self.queue
         self.impl = QueueLocalObject(queue: self.queue, generate: {
-            return AccountPresenceManagerImpl(queue: queue, shouldKeepOnlinePresence: shouldKeepOnlinePresence, network: network)
+            return AccountPresenceManagerImpl(queue: queue, shouldKeepOnlinePresence: shouldKeepOnlinePresence, network: network, accountId: accountId)
         })
     }
     

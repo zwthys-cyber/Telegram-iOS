@@ -4,7 +4,7 @@
 #define BY_PLUGIN_ABI 1
 #endif
 #ifndef BY_PLUGIN_FEATURES
-#define BY_PLUGIN_FEATURES 127
+#define BY_PLUGIN_FEATURES 511
 #endif
 
 enum { BY_DOWNLOAD_BOOST = 8 };

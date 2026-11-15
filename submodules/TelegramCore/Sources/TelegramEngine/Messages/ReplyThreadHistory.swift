@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings
 import Postbox
 import SwiftSignalKit
 internal import TelegramApi
@@ -227,6 +228,7 @@ private class ReplyThreadHistoryContextImpl {
     }
     
     func applyMaxReadIndex(messageIndex: MessageIndex) {
+        guard !BYPrivacy.effective(self.account.peerId.toInt64()).hideReadReceipts else { return }
         let peerId = self.peerId
         let threadId = self.threadId
         

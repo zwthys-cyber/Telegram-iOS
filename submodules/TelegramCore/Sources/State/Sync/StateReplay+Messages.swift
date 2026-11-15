@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings
 import Postbox
 import SwiftSignalKit
 internal import TelegramApi
@@ -274,6 +275,7 @@ extension ReplayContext {
     }
     
     func applyDeleteMessagesWithGlobalIds(_ ids: [Int32]) {
+        byArchiveDeletedMessages(transaction: transaction, ids: transaction.messageIdsForGlobalIds(ids))
         var resourceIds: [MediaResourceId] = []
         transaction.deleteMessagesWithGlobalIds(ids, forEachMedia: { media in
             addMessageMediaResourceIdsToRemove(media: media, resourceIds: &resourceIds)
@@ -285,6 +287,7 @@ extension ReplayContext {
     }
     
     func applyDeleteMessages(_ ids: [MessageId]) {
+        byArchiveDeletedMessages(transaction: transaction, ids: ids)
         _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: ids, manualAddMessageThreadStatsDifference: { id, add, remove in
             self.addMessageThreadStatsDifference(threadKey: id, remove: remove, addedMessagePeer: nil, addedMessageId: nil, isOutgoing: false)
         })
@@ -292,6 +295,9 @@ extension ReplayContext {
     }
     
     func applyUpdateMinAvailableMessage(_ id: MessageId) {
+        if id.id > 0 {
+            byArchiveDeletedMessages(transaction: transaction, ids: transaction.messageIdsInRange(peerId: id.peerId, namespace: id.namespace, range: 1 ... id.id, limit: BYHistoryLedger.maximumRecords, fromUpperBound: true))
+        }
         if let message = transaction.getMessage(id) {
             updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: id.peerId, minTimestamp: message.timestamp, forceRootGroupIfNotExists: false)
         }
@@ -307,6 +313,7 @@ extension ReplayContext {
     func applyEditMessage(_ id: MessageId, _ message: StoreMessage) {
         var generatedEvent: (reactionAuthor: Peer, reaction: MessageReaction.Reaction, message: Message, timestamp: Int32)?
         transaction.updateMessage(id, update: { previousMessage in
+            byArchiveEditedMessage(transaction: transaction, previous: previousMessage, updated: message)
             let peers: [PeerId:Peer] = previousMessage.peers.reduce([:], { current, value in
                 var current = current
                 current[value.0] = value.1
