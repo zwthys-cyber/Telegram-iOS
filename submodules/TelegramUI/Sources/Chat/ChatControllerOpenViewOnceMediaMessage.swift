@@ -131,6 +131,18 @@ extension ChatControllerImpl {
         let isIncoming = message.effectivelyIncoming(self.context.account.peerId)
         
         var presentImpl: ((ViewController) -> Void)?
+        let exportSnapshot = BYLocalMediaSnapshot(context: self.context, message: message._asMessage())
+        var localActions: [ContextMenuItem] = []
+        if message._asMessage().byAllowsLocalSaving {
+            localActions.append(.action(ContextMenuActionItem(text: self.presentationData.strings.Conversation_SaveToFiles, icon: { theme in
+                generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.actionSheet.primaryTextColor)
+            }, action: { [weak self] _, _ in
+                guard let self else { return }
+                byExportMediaLocally(context: self.context, message: message._asMessage(), snapshot: exportSnapshot, toFiles: true, present: { [weak self] c in
+                    self?.present(c, in: .window(.root))
+                })
+            })))
+        }
         let configuration = ContextController.Configuration(
             sources: [
                 ContextController.Source(
@@ -147,7 +159,7 @@ extension ChatControllerImpl {
                             presentImpl?(c)
                         }
                     )),
-                    items: .single(ContextController.Items(content: .list([]))),
+                    items: .single(ContextController.Items(content: .list(localActions))),
                     closeActionTitle: isIncoming ? self.presentationData.strings.Chat_PlayOnceMesasgeCloseAndDelete : self.presentationData.strings.Chat_PlayOnceMesasgeClose,
                     closeAction: { [weak self] in
                         if let self {

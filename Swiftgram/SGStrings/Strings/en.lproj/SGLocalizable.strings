@@ -292,3 +292,15 @@
 "Settings.NY.Style.lightning" = "Lightning";
 "Settings.NY.Notice" = "Available for a limited time only!";
 "Settings.HideAccountInNotifications" = "Hide Account in Notifications";
+
+// BYPlugin local settings
+"Settings.BYPlugin.Title" = "BYPlugin Settings";
+"Settings.BYPlugin.LocalSaving" = "Local copy and saving";
+"Settings.BYPlugin.LocalSaving.Notice" = "Allow copying and saving downloaded content from protected chats, including disappearing and view-once media while accessible. Paid content keeps its original behavior. Long-press a message or use Save while viewing. This does not restore expired content or change server forwarding rights.";
+"Settings.BYPlugin.SaveMenu" = "Show Save in the main message menu";
+"Settings.BYPlugin.Status.Active" = "BYPlugin is loaded. Manage local saving, message tools and download enhancement here.";
+"Settings.BYPlugin.Status.Missing" = "BYPlugin is not loaded or is incompatible. Inject the matching dylib when signing the app to enable plugin features.";
+"Settings.BYPlugin.Status.Legacy" = "BYPlugin is loaded, but this build does not enable local saving. Use the matching updated plugin.";
+"Settings.BYPlugin.Downloads.Notice" = "Changes apply after restarting the app. Existing Swiftgram preferences are shared with this page.";
+"Settings.BYPlugin.DownloadFirst" = "Download or open this media first, then try saving again while it is still available.";
+"Settings.BYPlugin.SaveFailed" = "The media could not be saved. Check Photos access and available storage, then try again.";

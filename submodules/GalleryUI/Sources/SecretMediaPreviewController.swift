@@ -163,6 +163,7 @@ public final class SecretMediaPreviewController: ViewController {
     }
     
     private var messageView: MessageView?
+    private var byExportSnapshot: BYLocalMediaSnapshot?
     private var currentNodeMessageId: MessageId?
     private var currentNodeMessageIsVideo = false
     private var currentNodeMessageIsViewOnce = false
@@ -238,6 +239,13 @@ public final class SecretMediaPreviewController: ViewController {
         self.centralItemAttributesDisposable.dispose()
     }
     
+    @objc private func bySavePressed() {
+        guard let message = self.byExportSnapshot?.message ?? self.messageView?.message else { return }
+        byExportMediaLocally(context: self.context, message: message, snapshot: self.byExportSnapshot, toFiles: false, present: { [weak self] c in
+            self?.present(c, in: .window(.root))
+        })
+    }
+
     @objc func donePressed() {
         self.dismiss(forceAway: false)
     }
@@ -511,6 +519,14 @@ public final class SecretMediaPreviewController: ViewController {
             }
         }
         if let message = message {
+            if message.byAllowsLocalSaving {
+                if self.byExportSnapshot == nil {
+                    self.byExportSnapshot = BYLocalMediaSnapshot(context: self.context, message: message)
+                }
+                let back = UIBarButtonItem(backButtonAppearanceWithTitle: self.presentationData.strings.Common_Back, target: self, action: #selector(self.donePressed))
+                let save = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(self.bySavePressed))
+                self.navigationItem.leftBarButtonItems = [back, save]
+            }
             if self.currentNodeMessageId != message.id {
                 self.currentNodeMessageId = message.id
                 var tempFilePath: String?

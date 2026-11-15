@@ -6,7 +6,8 @@ sgsrcs = [
 ]
 
 sgdeps = [
-    "//Swiftgram/SGSimpleSettings:SGSimpleSettings"
+    "//Swiftgram/SGSimpleSettings:SGSimpleSettings",
+    "//Swiftgram/SGStrings:SGStrings"
 ]
 #
 
@@ -29,6 +30,8 @@ swift_library(
         "//submodules/TelegramPresentationData:TelegramPresentationData",
         "//submodules/TextFormat:TextFormat",
         "//submodules/AccountContext:AccountContext",
+        "//submodules/DeviceAccess:DeviceAccess",
+        "//submodules/LegacyMediaPickerUI:LegacyMediaPickerUI",
         "//submodules/TelegramUniversalVideoContent:TelegramUniversalVideoContent",
         "//submodules/WebsiteType:WebsiteType",
         "//submodules/ScreenCaptureDetection:ScreenCaptureDetection",

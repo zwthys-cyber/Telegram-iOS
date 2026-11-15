@@ -4,10 +4,10 @@ if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
   echo "Build this project with GitHub Actions; local builds are disabled by project policy." >&2
   exit 1
 fi
-features="${BY_PLUGIN_FEATURES:-63}"
+features="${BY_PLUGIN_FEATURES:-127}"
 case "$features" in
-  [0-9]|[1-5][0-9]|6[0-3]) ;;
-  *) echo "BY_PLUGIN_FEATURES must be an integer from 0 to 63." >&2; exit 1 ;;
+  [0-9]|[1-9][0-9]|1[01][0-9]|12[0-7]) ;;
+  *) echo "BY_PLUGIN_FEATURES must be an integer from 0 to 127." >&2; exit 1 ;;
 esac
 output_dir="${1:-build/plugin}"
 mkdir -p "$output_dir"

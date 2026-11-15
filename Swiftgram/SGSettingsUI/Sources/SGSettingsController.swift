@@ -26,6 +26,7 @@ import UndoUI
 
 private enum SGControllerSection: Int32, SGItemListSection {
     case search
+    case byPlugin
     case trending
     case content
     case tabs
@@ -127,6 +128,7 @@ private enum SGSliderSetting: String {
 }
 
 private enum SGDisclosureLink: String {
+    case byPlugin
     case contentSettings
     case languageSettings
 }
@@ -154,6 +156,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.searchInput(id: id.count, section: .search, title: NSAttributedString(string: "🔍"), text: state.searchQuery ?? "", placeholder: strings.Common_Search))
     
     
+    entries.append(.disclosure(id: id.count, section: .byPlugin, link: .byPlugin, text: i18n("Settings.BYPlugin.Title", lang)))
+
     if SGSimpleSettings.shared.canUseNY {
         entries.append(.header(id: id.count, section: .trending, text: i18n("Settings.NY.Header", lang), badge: newStr))
         entries.append(.toggle(id: id.count, section: .trending, settingName: .nyStyleSnow, value: SGSimpleSettings.shared.nyStyle == SGSimpleSettings.NYStyle.snow.rawValue, text: i18n("Settings.NY.Style.snow", lang), enabled: true))
@@ -692,6 +696,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             return
         }
         switch (link) {
+            case .byPlugin:
+                pushControllerImpl?(byPluginSettingsController(context: context))
             case .languageSettings:
                 pushControllerImpl?(context.sharedContext.makeLocalizationListController(context: context))
             case .contentSettings:

@@ -11,6 +11,7 @@ public enum BYPlugin {
         case downloadBoost = 8
         case privateStorage = 16
         case loginRestart = 32
+        case localSaving = 64
     }
 
     private typealias UIntFunction = @convention(c) () -> UInt32
@@ -39,7 +40,7 @@ public enum BYPlugin {
         }
         let features = unsafeBitCast(featuresSymbol, to: UIntFunction.self)
         return Runtime(
-            features: features() & 63,
+            features: features() & 127,
             partSize: unsafeBitCast(partSymbol, to: PartFunction.self),
             pending: unsafeBitCast(pendingSymbol, to: PendingFunction.self)
         )
@@ -93,5 +94,22 @@ public enum SGLocalFeatures {
 
     public static func canUsePro(serverStatus: Int64) -> Bool {
         return proEnabled || serverStatus > 1
+    }
+}
+
+/// Local export is opt-in. Timers/view-once do not exclude still-accessible media;
+/// paid, expired, non-regular and unsupported content keep upstream behavior.
+public enum BYLocalSaving {
+    public static func allows(userEnabled: Bool, regularMessage: Bool, paid: Bool, expired: Bool, supportedContent: Bool) -> Bool {
+        return BYPlugin.isEnabled(.localSaving) && userEnabled && regularMessage && !paid && !expired && supportedContent
+    }
+
+    public static func fileName(_ original: String?, fallback: String) -> String {
+        guard let original else { return fallback }
+        var name = (original.replacingOccurrences(of: "\\", with: "/") as NSString).lastPathComponent
+        name = name.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }.map(String.init).joined()
+        guard !name.isEmpty, name != ".", name != ".." else { return fallback }
+        while name.utf8.count > 200 { name.removeLast() }
+        return name.isEmpty ? fallback : name
     }
 }

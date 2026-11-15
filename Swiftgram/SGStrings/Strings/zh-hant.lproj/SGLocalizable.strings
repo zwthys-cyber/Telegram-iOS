@@ -255,3 +255,15 @@
 "PayWall.ValidationError.Expired" = "您的訂閱已過期。請重新訂閱以恢復訪問 Pro 功能。";
 "Settings.videoControlsInFooter" = "底部影片控制項";
 "Settings.HideAccountInNotifications" = "在通知中隱藏帳號";
+
+// BYPlugin local settings
+"Settings.BYPlugin.Title" = "BYPlugin 設定";
+"Settings.BYPlugin.LocalSaving" = "本機複製與儲存";
+"Settings.BYPlugin.LocalSaving.Notice" = "允許複製和儲存受限聊天中已下載的內容，包括仍可開啟的閱後即焚、一次性媒體。付費內容維持原樣。長按訊息，或觀看時點選儲存。無法恢復已銷毀內容，伺服器轉傳權限維持原樣。";
+"Settings.BYPlugin.SaveMenu" = "在訊息主選單顯示儲存";
+"Settings.BYPlugin.Status.Active" = "BYPlugin 已載入。在這裡統一管理本機儲存、訊息工具和下載增強。";
+"Settings.BYPlugin.Status.Missing" = "BYPlugin 未載入或不相容。請在簽名時注入配套動態庫以啟用外掛功能。";
+"Settings.BYPlugin.Status.Legacy" = "BYPlugin 已載入，但目前外掛未啟用本機儲存。請使用配套的新版外掛。";
+"Settings.BYPlugin.Downloads.Notice" = "修改下載模式後請重新啟動應用程式。本頁與原 Swiftgram 設定共用已儲存的偏好。";
+"Settings.BYPlugin.DownloadFirst" = "請先下載或開啟這則媒體，在內容仍可用時再次儲存。";
+"Settings.BYPlugin.SaveFailed" = "媒體儲存失敗。請檢查相簿權限和剩餘儲存空間，然後重試。";
