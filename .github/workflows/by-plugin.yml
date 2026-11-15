@@ -2,11 +2,15 @@ name: BYPlugin and unsigned IPA
 on:
   workflow_call:
   workflow_dispatch:
+  pull_request:
+    branches: [upgrade/swiftgram-13.2.1-by-plugin]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/workflows/by-cancel-stale-build.yml'
   push:
     branches:
       - upgrade/swiftgram-13.2.1-by-plugin
       - master
-      - upgrade/by-plugin-privacy-history
     paths-ignore:
       - '**/*.md'
       - '.github/workflows/by-cancel-stale-build.yml'
