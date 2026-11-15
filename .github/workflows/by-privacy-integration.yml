@@ -7,7 +7,8 @@ permissions:
   contents: read
 concurrency:
   group: by-privacy-integration
-  cancel-in-progress: false
+  # Verify only the newest source revision; completed suite caches remain reusable.
+  cancel-in-progress: true
 jobs:
   integration:
     name: State sync - ${{ matrix.mode }}
