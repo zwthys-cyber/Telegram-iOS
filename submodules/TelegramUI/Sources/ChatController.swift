@@ -2431,7 +2431,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 return
             }
             
-            let ids = ids.filter { strongSelf.chatDisplayNode.historyNode.messageInCurrentHistoryView($0)?.byLocalNotice == nil }
+            let ids = ids.filter { strongSelf.chatDisplayNode.historyNode.messageInCurrentHistoryView($0)?._asMessage().byLocalNotice == nil }
             guard !ids.isEmpty else { return }
             if let subject = strongSelf.subject, case .messageOptions = subject, !value {
                 let selectedCount = strongSelf.presentationInterfaceState.interfaceState.selectionState?.selectedIds.count ?? 0
@@ -3932,7 +3932,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             })
         }, openSearch: {
         }, setupReply: { [weak self] messageId in
-            if let self, self.isNodeLoaded, self.chatDisplayNode.historyNode.messageInCurrentHistoryView(messageId)?.byLocalNotice != nil { return }
+            if let self, self.isNodeLoaded, self.chatDisplayNode.historyNode.messageInCurrentHistoryView(messageId)?._asMessage().byLocalNotice != nil { return }
             self?.interfaceInteraction?.setupReplyMessage(messageId, nil, { _, f in f() })
         }, canSetupReply: { [weak self] message in
             if message.byLocalNotice != nil { return .none }
