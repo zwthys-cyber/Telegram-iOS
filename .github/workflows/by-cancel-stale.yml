@@ -1,0 +1,32 @@
+name: Cancel superseded BYPlugin build
+on:
+  push:
+    branches:
+      - ci/cancel-by-local-saving-stale
+permissions:
+  contents: read
+  actions: write
+jobs:
+  cancel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const run_id = 43704671152;
+            const expected = 'abdca0ed3141e49c1eb17f379744566dc43974d1';
+            const branch = 'upgrade/swiftgram-13.2.1-by-plugin';
+            const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id});
+            if (run.head_sha !== expected || run.head_branch !== branch) {
+              throw new Error('Run identity mismatch; refusing cancellation.');
+            }
+            const {data: head} = await github.rest.repos.getBranch({owner, repo, branch});
+            if (head.commit.sha === expected || run.status === 'completed') {
+              core.notice('No obsolete running build to cancel.');
+              return;
+            }
+            await github.rest.actions.cancelWorkflowRun({owner, repo, run_id});
+            core.notice('Cancelled only the superseded build ' + run_id);
