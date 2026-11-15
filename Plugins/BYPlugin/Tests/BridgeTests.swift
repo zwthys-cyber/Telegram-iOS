@@ -5,12 +5,12 @@ import Foundation
 struct BridgeTests {
     static func main() {
         let expected = CommandLine.arguments[1]
-        let active = expected == "enabled" || expected == "legacy"
+        let active = expected == "enabled" || expected == "previous" || expected == "legacy"
         precondition(BYPlugin.available == (active || expected == "disabled"))
         for feature: BYPlugin.Feature in [.icons, .messageTools, .localFeatures, .downloadBoost, .privateStorage, .loginRestart] {
             precondition(BYPlugin.isEnabled(feature) == active)
         }
-        precondition(BYPlugin.isEnabled(.localSaving) == (expected == "enabled"))
+        precondition(BYPlugin.isEnabled(.localSaving) == (expected == "enabled" || expected == "previous"))
         precondition(SGLocalFeatures.canUsePro(serverStatus: 1) == active)
         precondition(SGLocalFeatures.canUsePro(serverStatus: 2))
         precondition(BYPlugin.downloadPartSize(131072, fileSize: nil, mode: "maximum") == 131072)
@@ -30,7 +30,7 @@ struct BridgeTests {
             let paid = bits & 4 != 0
             let expired = bits & 8 != 0
             let supported = bits & 16 != 0
-            let shouldAllow = expected == "enabled" && bits == 19
+            let shouldAllow = (expected == "enabled" || expected == "previous") && bits == 19
             precondition(BYLocalSaving.allows(userEnabled: userEnabled, regularMessage: regular, paid: paid, expired: expired, supportedContent: supported) == shouldAllow)
         }
         precondition(BYLocalSaving.fileName("../../report.pdf", fallback: "file.bin") == "report.pdf")
@@ -40,6 +40,22 @@ struct BridgeTests {
         precondition(BYLocalSaving.fileName(nil, fallback: "file.bin") == "file.bin")
         precondition(BYLocalSaving.fileName("a\nb.pdf", fallback: "file.bin") == "ab.pdf")
         precondition(BYLocalSaving.fileName(String(repeating: "文", count: 100), fallback: "file.bin").utf8.count <= 200)
+        let accountA: Int64 = -81820001
+        let accountB: Int64 = -81820002
+        BYPrivacy.update(accountA) { $0 = BYAccountOptions() }
+        BYPrivacy.update(accountB) { $0 = BYAccountOptions() }
+        precondition(!BYPrivacy.saved(accountA).anyGhostEnabled)
+        BYPrivacy.update(accountA) { options in
+            options.setGhost(true)
+            options.keepDeleted = true
+            options.keepEdits = true
+        }
+        precondition(BYPrivacy.saved(accountA).hideReadReceipts)
+        precondition(!BYPrivacy.saved(accountB).anyGhostEnabled)
+        precondition(BYPrivacy.effective(accountA).anyGhostEnabled == (expected == "enabled"))
+        precondition(BYPrivacy.effective(accountA).keepDeleted == (expected == "enabled"))
+        precondition(BYPrivacy.effective(accountA).keepEdits == (expected == "enabled"))
+        BYPrivacy.update(accountA) { $0 = BYAccountOptions() }
         print("BYPlugin ABI/injection/policy checks passed: \(expected)")
     }
 }

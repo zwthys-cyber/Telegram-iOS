@@ -10,8 +10,9 @@ xcrun swiftc -warnings-as-errors \
   Swiftgram/SGSimpleSettings/Sources/BYPlugin.swift \
   Plugins/BYPlugin/Tests/BridgeTests.swift -o "$test_dir/bridge-tests"
 "$test_dir/bridge-tests" absent
-for scenario in enabled legacy disabled incompatible; do
-  extra=(-DBY_PLUGIN_FEATURES=127)
+for scenario in enabled previous legacy disabled incompatible; do
+  extra=(-DBY_PLUGIN_FEATURES=511)
+  if [[ "$scenario" == "previous" ]]; then extra=(-DBY_PLUGIN_FEATURES=127); fi
   if [[ "$scenario" == "legacy" ]]; then extra=(-DBY_PLUGIN_FEATURES=63); fi
   if [[ "$scenario" == "disabled" ]]; then extra=(-DBY_PLUGIN_FEATURES=0); fi
   if [[ "$scenario" == "incompatible" ]]; then extra=(-DBY_PLUGIN_ABI=2); fi
@@ -33,3 +34,8 @@ xcrun swiftc -warnings-as-errors \
   submodules/PasscodeCore/Sources/PasscodeCrypto.swift \
   Plugins/BYPlugin/Tests/PasscodeEnvironmentTests.swift -o "$test_dir/passcode-tests"
 "$test_dir/passcode-tests"
+
+xcrun swiftc -warnings-as-errors \
+  Swiftgram/SGSimpleSettings/Sources/BYHistoryModel.swift \
+  Plugins/BYPlugin/Tests/HistoryTests.swift -o "$test_dir/history-tests"
+"$test_dir/history-tests"

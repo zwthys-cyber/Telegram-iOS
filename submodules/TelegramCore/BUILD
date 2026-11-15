@@ -62,6 +62,8 @@ swift_library(
     ]),
     deps = [
         ":TelegramCore",
+        "//Swiftgram/SGSimpleSettings:SGSimpleSettings",
+        "//Plugins/BYPlugin:BYPluginTestShim",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/TelegramApi:TelegramApi",
         "//submodules/Utils/RangeSet:RangeSet",

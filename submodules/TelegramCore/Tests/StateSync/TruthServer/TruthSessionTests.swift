@@ -1,4 +1,6 @@
 import Foundation
+import Darwin
+import SGSimpleSettings
 import XCTest
 import SwiftSignalKit
 import Postbox
@@ -8,6 +10,29 @@ import TelegramApi
 /// Sessions against the truth server (TruthSession.swift): each runs its steps, brings the app to rest with every
 /// chat filled, and expects the app to hold exactly what the server holds. The oracle's own two tests come first.
 final class TruthSessionTests: XCTestCase {
+    private var bySavedOptions: BYAccountOptions?
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        if ProcessInfo.processInfo.environment["BY_HISTORY_VALIDATION"] == "1" {
+            if let path = Bundle(for: TruthSessionTests.self).executablePath {
+                _ = dlopen(path, RTLD_NOW | RTLD_GLOBAL)
+            }
+            XCTAssertTrue(BYPlugin.isEnabled(.messageHistory))
+            self.bySavedOptions = BYPrivacy.saved(StateSyncFixture.accountPeerId.toInt64())
+            BYPrivacy.update(StateSyncFixture.accountPeerId.toInt64()) {
+                $0 = BYAccountOptions()
+                $0.keepDeleted = true
+                $0.keepEdits = true
+            }
+        }
+    }
+    override func tearDown() {
+        if let saved = self.bySavedOptions {
+            BYPrivacy.update(StateSyncFixture.accountPeerId.toInt64()) { $0 = saved }
+        }
+        super.tearDown()
+    }
+
     private let baseDate: Int32 = 1_700_000_000
 
     /// A driver that has run `steps` and brought the app to rest; the caller compares and closes it.

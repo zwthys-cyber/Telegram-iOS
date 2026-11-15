@@ -211,6 +211,7 @@ func confirmStoredMessages(accountPeerId: PeerId, postbox: Postbox, source: Fetc
 /// Returns the ids it deleted: the private-chat and basic-group ones, then the channel ones, each in the order given.
 @discardableResult
 func deleteStoredMessagesAsReceivedDeletion(transaction: Transaction, mediaBox: MediaBox, ids: [MessageId]) -> [MessageId] {
+    byArchiveDeletedMessages(transaction: transaction, ids: ids)
     var regularIds: [MessageId] = []
     var channelIds: [MessageId] = []
     for id in ids {
@@ -264,6 +265,9 @@ func applyStoredMessageConfirmation(transaction: Transaction, accountPeerId: Pee
     var refreshed: [StoreMessage] = []
     for message in confirmation.existing {
         if case let .Id(id) = message.id, isUnchanged(id) {
+            if let previous = transaction.getMessage(id) {
+                byArchiveEditedMessage(transaction: transaction, previous: previous, updated: message)
+            }
             refreshed.append(message)
         }
     }

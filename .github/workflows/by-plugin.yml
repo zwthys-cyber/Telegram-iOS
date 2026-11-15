@@ -2,10 +2,22 @@ name: BYPlugin and unsigned IPA
 on:
   workflow_call:
   workflow_dispatch:
+  pull_request:
+    branches: [upgrade/swiftgram-13.2.1-by-plugin]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/workflows/by-cancel-stale-build.yml'
+      - '.github/workflows/by-privacy-*.yml'
+      - '.github/scripts/run_by_privacy_tests.py'
   push:
     branches:
       - upgrade/swiftgram-13.2.1-by-plugin
       - master
+    paths-ignore:
+      - '**/*.md'
+      - '.github/workflows/by-cancel-stale-build.yml'
+      - '.github/workflows/by-privacy-*.yml'
+      - '.github/scripts/run_by_privacy_tests.py'
 permissions:
   contents: read
 concurrency:
@@ -36,7 +48,16 @@ jobs:
       - name: Check adapter Swift syntax
         run: python3 .github/scripts/check_by_plugin.py
       - name: Build injectable arm64 dylib
-        run: bash Plugins/BYPlugin/build.sh
+        run: |
+          bash Plugins/BYPlugin/build.sh
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          metadata = json.loads(Path("build/plugin/plugin.json").read_text())
+          assert metadata["feature_flags"] == 511, "Release dylib is missing BYPlugin 2.0 features"
+          assert metadata["host_abi"] == 1
+          print("Packaged BYPlugin 2.0 feature mask verified:", metadata["feature_flags"])
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: BYPlugin-arm64-${{ github.run_number }}
@@ -80,17 +101,7 @@ jobs:
           restore-keys: |
             by-bazel-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock', '.gitmodules') }}-
       - name: Build complete release arm64 app
-        run: |
-          set -euo pipefail
-          mkdir -p build/artifacts
-          python3 -u build-system/Make/Make.py \
-            --cacheDir="$RUNNER_TEMP/bazel-cache" \
-            build \
-            --configurationPath=build/unsigned-configuration.json \
-            --codesigningInformationPath=build-system/fake-codesigning \
-            --configuration=release_arm64 \
-            --buildNumber="$GITHUB_RUN_NUMBER" \
-            2>&1 | tee build/build.log
+        run: python3 -u .github/scripts/build_by_release.py
       - name: Package and verify base IPA
         run: python3 .github/scripts/package_unsigned.py
       - uses: actions/upload-artifact@v4
@@ -111,8 +122,19 @@ jobs:
           path: build/build.log
           if-no-files-found: ignore
           retention-days: 7
+      - name: Stop Bazel before archiving its cache
+        if: always()
+        id: stop_bazel
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          for executable in Path("build-input").glob("bazel-*-darwin-arm64"):
+              subprocess.run([str(executable.resolve()), "shutdown"], check=True, timeout=60)
+          PY
       - name: Save Bazel cache
-        if: ${{ always() && steps.cache.outputs.cache-hit != 'true' }}
+        if: ${{ always() && steps.stop_bazel.outcome == 'success' && steps.cache.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@v4
         with:

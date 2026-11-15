@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings
 import Postbox
 internal import TelegramApi
 import SwiftSignalKit
@@ -252,6 +253,10 @@ private func validatePeerReadState(network: Network, postbox: Postbox, stateMana
 }
 
 private func pushPeerReadState(network: Network, postbox: Postbox, stateManager: AccountStateManager, peerId: PeerId, readState: PeerReadState) -> Signal<PeerReadState, PeerReadStateValidationError> {
+    if peerId.namespace != Namespaces.Peer.SecretChat && BYPrivacy.effective(stateManager.accountPeerId.toInt64()).hideReadReceipts {
+        // Consume the persisted push locally: never queue a delayed receipt for after Ghost Mode ends.
+        return .single(readState)
+    }
     if peerId.namespace == Namespaces.Peer.SecretChat {
         // Decide whether a request is needed before looking the peer up: inputSecretChat goes
         // through loadedPeerWithId, which never emits when the peer row is missing and fails
@@ -285,6 +290,7 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
     } else {
         return inputPeer(postbox: postbox, peerId: peerId)
         |> mapToSignal { inputPeer -> Signal<PeerReadState, PeerReadStateValidationError> in
+            if BYPrivacy.effective(stateManager.accountPeerId.toInt64()).hideReadReceipts { return .single(readState) }
             switch inputPeer {
             case let .inputPeerChannel(inputPeerChannelData):
                 let (channelId, accessHash) = (inputPeerChannelData.channelId, inputPeerChannelData.accessHash)

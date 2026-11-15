@@ -31,6 +31,7 @@ func _internal_applyMaxReadIndexInteractively(postbox: Postbox, stateManager: Ac
 /// intent - can say it did nothing rather than claim success.
 func _internal_applyMaxReadMessageIdInteractively(postbox: Postbox, stateManager: AccountStateManager, messageId: MessageId) -> Signal<Bool, NoError> {
     return postbox.transaction { transaction -> Bool in
+        guard !bySuppressRead(transaction: transaction, peerId: messageId.peerId) else { return false }
         guard messageId.peerId.namespace != Namespaces.Peer.SecretChat else {
             return false
         }
@@ -45,6 +46,7 @@ func _internal_applyMaxReadMessageIdInteractively(postbox: Postbox, stateManager
 }
 
 func _internal_applyMaxReadIndexInteractively(transaction: Transaction, stateManager: AccountStateManager, index: MessageIndex) {
+    guard !bySuppressRead(transaction: transaction, peerId: index.id.peerId) else { return }
     // A channel the account is not a member of has no read state on the server
     // (NonMemberChannelReadState.swift): nothing moves locally and no push is queued.
     guard peerKeepsReadState(transaction.getPeer(index.id.peerId)) else {
@@ -179,6 +181,7 @@ func _internal_togglePeerUnreadMarkInteractively(postbox: Postbox, network: Netw
 }
 
 func _internal_toggleForumThreadUnreadMarkInteractively(transaction: Transaction, network: Network, viewTracker: AccountViewTracker, peerId: PeerId, threadId: Int64, setToValue: Bool?) {
+    guard !bySuppressRead(transaction: transaction, peerId: peerId) else { return }
     guard let peer = transaction.getPeer(peerId) else {
         return
     }
@@ -231,6 +234,7 @@ func _internal_toggleForumThreadUnreadMarkInteractively(transaction: Transaction
 }
 
 func _internal_markForumThreadAsReadInteractively(transaction: Transaction, network: Network, viewTracker: AccountViewTracker, peerId: PeerId, threadId: Int64) {
+    guard !bySuppressRead(transaction: transaction, peerId: peerId) else { return }
     guard let peer = transaction.getPeer(peerId) else {
         return
     }
@@ -266,6 +270,7 @@ func _internal_markForumThreadAsReadInteractively(transaction: Transaction, netw
 }
 
 func _internal_togglePeerUnreadMarkInteractively(transaction: Transaction, network: Network, viewTracker: AccountViewTracker, peerId: PeerId, setToValue: Bool? = nil) {
+    guard !bySuppressRead(transaction: transaction, peerId: peerId) else { return }
     guard let peer = transaction.getPeer(peerId) else {
         return
     }
@@ -353,6 +358,7 @@ func _internal_togglePeerUnreadMarkInteractively(transaction: Transaction, netwo
 /// it still unread (the push's `updateReadChannelInbox` with `still_unread_count`, or the validation that follows,
 /// since the local count no longer matched), so the chat returned to the list unread a moment after it left.
 func _internal_readPeerHistoryToTopInteractively(transaction: Transaction, peer: Peer, principalNamespace: MessageId.Namespace) {
+    guard !bySuppressRead(transaction: transaction, peerId: peer.id) else { return }
     guard let topIndex = transaction.getTopPeerMessageIndex(peerId: peer.id) else {
         transaction.applyMarkUnread(peerId: peer.id, namespace: principalNamespace, value: false, interactive: true)
         return

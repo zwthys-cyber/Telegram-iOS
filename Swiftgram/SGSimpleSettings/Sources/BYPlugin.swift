@@ -12,6 +12,8 @@ public enum BYPlugin {
         case privateStorage = 16
         case loginRestart = 32
         case localSaving = 64
+        case ghostMode = 128
+        case messageHistory = 256
     }
 
     private typealias UIntFunction = @convention(c) () -> UInt32
@@ -40,7 +42,7 @@ public enum BYPlugin {
         }
         let features = unsafeBitCast(featuresSymbol, to: UIntFunction.self)
         return Runtime(
-            features: features() & 127,
+            features: features() & 511,
             partSize: unsafeBitCast(partSymbol, to: PartFunction.self),
             pending: unsafeBitCast(pendingSymbol, to: PendingFunction.self)
         )
@@ -111,5 +113,68 @@ public enum BYLocalSaving {
         guard !name.isEmpty, name != ".", name != ".." else { return fallback }
         while name.utf8.count > 200 { name.removeLast() }
         return name.isEmpty ? fallback : name
+    }
+}
+
+/// Stored independently per Telegram account. New privacy options are opt-in.
+/// Preferences are never uploaded and a missing/older dylib disables the new policies.
+public struct BYAccountOptions: Codable, Equatable {
+    public var hideOnline = false
+    public var hideTyping = false
+    public var hideReadReceipts = false
+    public var hideStoryViews = false
+    public var keepDeleted = false
+    public var keepEdits = false
+    public var historyDays = 30
+
+    public init() {}
+    public var anyGhostEnabled: Bool {
+        return hideOnline || hideTyping || hideReadReceipts || hideStoryViews
+    }
+    public mutating func setGhost(_ value: Bool) {
+        hideOnline = value
+        hideTyping = value
+        hideReadReceipts = value
+        hideStoryViews = value
+    }
+}
+
+public enum BYPrivacy {
+    public static let changed = Notification.Name("BYPlugin.AccountOptionsChanged")
+    private static let lock = NSLock()
+    private static func key(_ accountId: Int64) -> String { "BYPlugin.account.v1.\(accountId)" }
+
+    public static func saved(_ accountId: Int64) -> BYAccountOptions {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let data = UserDefaults.standard.data(forKey: key(accountId)),
+              let options = try? JSONDecoder().decode(BYAccountOptions.self, from: data) else {
+            return BYAccountOptions()
+        }
+        return options
+    }
+
+    public static func effective(_ accountId: Int64) -> BYAccountOptions {
+        var options = saved(accountId)
+        if !BYPlugin.isEnabled(.ghostMode) { options.setGhost(false) }
+        if !BYPlugin.isEnabled(.messageHistory) {
+            options.keepDeleted = false
+            options.keepEdits = false
+        }
+        options.historyDays = [7, 30, 90].contains(options.historyDays) ? options.historyDays : 30
+        return options
+    }
+
+    public static func update(_ accountId: Int64, _ update: (inout BYAccountOptions) -> Void) {
+        lock.lock()
+        var options = UserDefaults.standard.data(forKey: key(accountId)).flatMap {
+            try? JSONDecoder().decode(BYAccountOptions.self, from: $0)
+        } ?? BYAccountOptions()
+        update(&options)
+        if let data = try? JSONEncoder().encode(options) {
+            UserDefaults.standard.set(data, forKey: key(accountId))
+        }
+        lock.unlock()
+        NotificationCenter.default.post(name: changed, object: nil, userInfo: ["accountId": accountId])
     }
 }

@@ -117,6 +117,7 @@ private enum GetUnseenIdsError {
 }
 
 private func synchronizeMarkAllUnseen(transaction: Transaction, postbox: Postbox, network: Network, stateManager: AccountStateManager, peerId: PeerId, operation: SynchronizeMarkAllUnseenPersonalMessagesOperation) -> Signal<Void, NoError> {
+    if bySuppressRead(transaction: transaction, peerId: peerId) { return .complete() }
     guard let inputPeer = transaction.getPeer(peerId).flatMap(apiInputPeer) else {
         return .complete()
     }

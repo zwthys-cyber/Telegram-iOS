@@ -5,6 +5,36 @@ internal import TelegramApi
 import MtProtoKit
 
 
+/// The same request path is exercised by the scripted-server regression tests.
+func synchronizeSeenLiveLocations(transaction: Transaction, network: Network, peerId: PeerId, messageIds: [MessageId]) -> Signal<Void, NoError> {
+    let messageIds = messageIds.filter { !bySuppressContentRead(transaction: transaction, id: $0) }
+    guard !messageIds.isEmpty else { return .complete() }
+    if let peer = transaction.getPeer(peerId), let inputPeer = apiInputPeer(peer) {
+        let request: Signal<Bool, MTRpcError>
+        switch inputPeer {
+        case .inputPeerChat, .inputPeerSelf, .inputPeerUser:
+            request = network.request(Api.functions.messages.readMessageContents(id: messageIds.map { $0.id }))
+            |> map { _ in true }
+        case let .inputPeerChannel(inputPeerChannelData):
+            let (channelId, accessHash) = (inputPeerChannelData.channelId, inputPeerChannelData.accessHash)
+            request = network.request(Api.functions.channels.readMessageContents(channel: .inputChannel(.init(channelId: channelId, accessHash: accessHash)), id: messageIds.map { $0.id }))
+            |> map { _ in true }
+        default:
+            return .complete()
+        }
+        
+        return request
+        |> `catch` { _ -> Signal<Bool, NoError> in
+            return .single(false)
+        }
+        |> mapToSignal { _ -> Signal<Void, NoError> in
+            return .complete()
+        }
+    } else {
+        return .complete()
+    }
+}
+
 public enum CallListViewType {
     case all
     case missed
@@ -981,30 +1011,7 @@ public final class AccountViewTracker {
                     
                     if let account = self.account {
                         let signal = (account.postbox.transaction { transaction -> Signal<Void, NoError> in
-                            if let peer = transaction.getPeer(peerId), let inputPeer = apiInputPeer(peer) {
-                                let request: Signal<Bool, MTRpcError>
-                                switch inputPeer {
-                                case .inputPeerChat, .inputPeerSelf, .inputPeerUser:
-                                    request = account.network.request(Api.functions.messages.readMessageContents(id: messageIds.map { $0.id }))
-                                    |> map { _ in true }
-                                case let .inputPeerChannel(inputPeerChannelData):
-                                    let (channelId, accessHash) = (inputPeerChannelData.channelId, inputPeerChannelData.accessHash)
-                                    request = account.network.request(Api.functions.channels.readMessageContents(channel: .inputChannel(.init(channelId: channelId, accessHash: accessHash)), id: messageIds.map { $0.id }))
-                                    |> map { _ in true }
-                                default:
-                                    return .complete()
-                                }
-                                
-                                return request
-                                |> `catch` { _ -> Signal<Bool, NoError> in
-                                    return .single(false)
-                                }
-                                |> mapToSignal { _ -> Signal<Void, NoError> in
-                                    return .complete()
-                                }
-                            } else {
-                                return .complete()
-                            }
+                            return synchronizeSeenLiveLocations(transaction: transaction, network: account.network, peerId: peerId, messageIds: messageIds)
                         }
                         |> switchToLatest)
                         |> afterDisposed { [weak self] in
