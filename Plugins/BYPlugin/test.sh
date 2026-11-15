@@ -26,3 +26,9 @@ xcrun swiftc -warnings-as-errors \
   submodules/TelegramCore/Sources/Network/DownloadPartAlignment.swift \
   .github/scripts/DownloadPartAlignmentTests.swift -o "$test_dir/download-tests"
 "$test_dir/download-tests"
+
+xcrun swiftc -warnings-as-errors \
+  submodules/PasscodeCore/Sources/PasscodeEnvironment.swift \
+  submodules/PasscodeCore/Sources/PasscodeCrypto.swift \
+  Plugins/BYPlugin/Tests/PasscodeEnvironmentTests.swift -o "$test_dir/passcode-tests"
+"$test_dir/passcode-tests"

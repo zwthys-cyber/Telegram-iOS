@@ -1,0 +1,19 @@
+name: BYPlugin self-signed keychain verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  passcode:
+    runs-on: xcode-27
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Select upstream Xcode
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')
+          sudo xcode-select -s "/Applications/Xcode_${version}.app/Contents/Developer"
+      - name: Verify private keychain scope on macOS and iOS
+        run: bash Plugins/BYPlugin/test-passcode.sh

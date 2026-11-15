@@ -1,10 +1,10 @@
 name: BYPlugin and unsigned IPA
 on:
+  workflow_call:
   workflow_dispatch:
   push:
     branches:
       - upgrade/swiftgram-13.2.1-by-plugin
-      - ci/unsigned-ipa
       - master
 permissions:
   contents: read

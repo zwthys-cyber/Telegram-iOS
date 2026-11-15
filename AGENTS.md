@@ -1,3 +1,7 @@
+# Repository execution policy
+
+The repository owner requires all builds, tests, validation commands, and heavy repository operations to run on GitHub Actions. Use the GitHub connector to read or modify repository files. Do not clone, build, test, or run shell operations on the current assistant server. CI uses the latest available macOS ARM64 image compatible with upstream pins.
+
 # AGENTS.md
 
 Guidance for coding agents working in this repository. The project guide is [`CLAUDE.md`](CLAUDE.md): how to build,

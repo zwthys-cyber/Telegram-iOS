@@ -17,6 +17,8 @@
     "Telegram/NotificationService/Sources/NotificationService.swift",
     "submodules/AuthorizationUI/BUILD",
     "submodules/AuthorizationUI/Sources/AuthorizationSequencePaymentScreen.swift",
+    "submodules/PasscodeCore/Sources/Passcode.swift",
+    "submodules/PasscodeCore/Sources/PasscodeEnvironment.swift",
     "submodules/SettingsUI/Sources/Themes/ThemeSettingsAppIconItem.swift",
     "submodules/SettingsUI/Sources/Themes/ThemeSettingsController.swift",
     "submodules/TelegramCore/Sources/Network/DownloadPartAlignment.swift",

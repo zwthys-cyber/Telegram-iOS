@@ -21,7 +21,7 @@
 | 消息工具 | 复制消息 ID、UTC ISO 8601 时间；默认显示 JSON、秒级时间及快捷翻译，保留复制保护 |
 | 本地功能 | 工具栏、关键词过滤、本地 Pro 页面、徽标和通知设置；不改写订阅状态或 Telegram Premium |
 | 下载增强 | 插件拥有分块/并发策略；接入 V1 和 CDN，保留上游 Rust 引擎、优先级、哈希验证、服务端等待和未知长度 EOF 顺序探测 |
-| 自签名存储 | 缺少 App Group 时主应用继续使用旧定制版的 Library/Application Support/Swiftgram 路径，不删除、不自动迁移数据 |
+| 自签名存储 | 缺少 App Group 时主应用继续使用旧定制版的 Library/Application Support/Swiftgram 路径；新版密码保护使用经校验的应用私有钥匙串，不删除、不自动迁移数据 |
 | 登录返回 | 短信付费页面可重新开始登录；不绕过服务器认证或收费 |
 
 通知服务是独立进程：通知定制需要有效 App Groups，并需要签名工具对 NotificationService 扩展单独注入并签名同一个 dylib。只给主应用注入不会启用扩展中的插件策略。其他扩展保持上游逻辑。Keychain/推送能力仍由签名权限决定。
@@ -42,4 +42,4 @@ ABI 1 功能位：icons=1、messageTools=2、localFeatures=4、downloadBoost=8�
 
 GitHub 使用最新 macOS 27 ARM64 环境 `xcode-27`，从上游 `versions.json` 选择 Xcode 27.1 和 Bazel 9.2.0。插件验证与构建独立执行；完整 IPA 构建使用缓存和按内存限制的并发。所需仓库 Actions secrets 为现有的 `TELEGRAM_API_ID`、`TELEGRAM_API_HASH`，不会打印或上传它们。
 
-自动检查包括缺失插件/正常注入/关闭功能/不兼容 ABI、下载边界与小文件、未知长度资源策略、数据保存、完整 release arm64 构建、IPA CRC 和所有 Mach-O 的平台/架构/签名。未在你的手机上使用全能签安装验证前，不能把构建通过视为真机兼容性结论。
+自动检查包括缺失插件/正常注入/关闭功能/不兼容 ABI、下载边界与小文件、未知长度资源策略、数据保存、私有钥匙串选择与扩展隔离、完整 release arm64 构建、IPA CRC 和所有 Mach-O 的平台/架构/签名。未在你的手机上使用全能签安装验证前，不能把构建通过视为真机兼容性结论。
