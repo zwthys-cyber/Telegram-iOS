@@ -1,0 +1,21 @@
+name: BYPlugin 2.1 source inventory
+on:
+  push:
+    branches: [upgrade/by-plugin-chat-privacy]
+    paths: ['.github/workflows/by-source-inventory.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: xcode-27
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Find ad, filter and chat interaction call sites
+        run: |
+          rg -n 'getSponsoredPeers|messageFilterKeywords|openUrl: \{|case \.customText|func.*[Mm]ore|func.*[Cc]ontextMenu' Swiftgram submodules/TelegramCore/Sources submodules/TelegramUI/Sources submodules/TelegramUI/Components/Chat/ChatMessageActionBubbleContentNode | sed -n '1,180p'
+      - name: Find inline chat history and per-peer policy seams
+        run: |
+          rg -n 'chatHistoryEntriesForView\(|BYPrivacy.effective|byAccountOptions|bySuppressRead|func.*[Oo]penMessage|func.*[Nn]avigation.*Menu|case \.more' submodules/TelegramCore/Sources submodules/TelegramUI/Sources | sed -n '1,200p'
