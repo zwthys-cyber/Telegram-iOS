@@ -1,8 +1,7 @@
 import Foundation
-import SGSimpleSettings
 import Postbox
 import SwiftSignalKit
-import TelegramApi
+internal import TelegramApi
 import MtProtoKit
 import RangeSet
 
@@ -27,7 +26,7 @@ private final class MultipartDownloadState {
     }
     
     func transform(offset: Int64, data: Data) -> Data {
-        if self.aesKey.count != 0 {
+        if self.aesKey.count == 32 && self.aesIv.count == 32 {
             var decryptedData = data
             assert(decryptedSize != nil)
             assert(decryptedData.count % 16 == 0)
@@ -382,7 +381,12 @@ private enum MultipartFetchSource {
                                                 }
                                             }
                                             parsedPartHashes.removeAll()
-                                            return .fail(.switchToCdn(id: dcId, token: fileToken.makeData(), key: encryptionKey.makeData(), iv: encryptionIv.makeData(), partHashes: parsedPartHashes))
+                                            let key = encryptionKey.makeData()
+                                            let iv = encryptionIv.makeData()
+                                            if !cdnRedirectKeyMaterialIsValid(encryptionKey: key, encryptionIv: iv) {
+                                                return .fail(.fatal)
+                                            }
+                                            return .fail(.switchToCdn(id: dcId, token: fileToken.makeData(), key: key, iv: iv, partHashes: parsedPartHashes))
                                     }
                                 }
                         }
@@ -439,7 +443,10 @@ private enum MultipartFetchSource {
                                     var ivOffset: Int32 = Int32(clamping: (offset / 16)).bigEndian
                                     memcpy(bytes.advanced(by: partIvCount - 4), &ivOffset, 4)
                                 }
-                                return .single((MTAesCtrDecrypt(bytes.makeData(), key, partIv)!, info))
+                                guard let decryptedData = MTAesCtrDecrypt(bytes.makeData(), key, partIv) else {
+                                    return .fail(.generic)
+                                }
+                                return .single((decryptedData, info))
                             }
                     }
                 }
@@ -565,39 +572,26 @@ private final class MultipartFetchManager {
             }
         }
         
-        let basePartSize: Int64
-        let baseParallelParts: Int
         if isStory {
-            basePartSize = 512 * 1024
-            if let size = size, size > basePartSize {
-                baseParallelParts = 4
+            self.defaultPartSize = 512 * 1024
+            if let size = size, size > self.defaultPartSize {
+                self.parallelParts = 4
             } else {
-                baseParallelParts = 1
+                self.parallelParts = 1
             }
         } else if let size = size {
             if size <= 512 * 1024 {
-                basePartSize = 16 * 1024
-                baseParallelParts = 4 * 4
+                self.defaultPartSize = 16 * 1024
+                self.parallelParts = 4 * 4
             } else {
-                basePartSize = 512 * 1024
-                baseParallelParts = 8
+                self.defaultPartSize = 512 * 1024
+                self.parallelParts = 8
             }
         } else {
-            baseParallelParts = 1
-            basePartSize = 128 * 1024
+            self.parallelParts = 1
+            self.defaultPartSize = 128 * 1024
         }
         
-        // The V2 kill switch and saved per-account engine preferences may route
-        // cloud files through V1. Apply the global boost here as well.
-        // Unknown-size V1 downloads probe sequentially to establish EOF.
-        if resource is TelegramCloudMediaResource, size != nil {
-            self.defaultPartSize = getSGDownloadPartSize(basePartSize, fileSize: size)
-            self.parallelParts = max(baseParallelParts, getSGMaxPendingParts(baseParallelParts))
-        } else {
-            self.defaultPartSize = basePartSize
-            self.parallelParts = baseParallelParts
-        }
-
         if let info = parameters?.info as? TelegramCloudMediaResourceFetchInfo {
             self.fileReference = info.reference.apiFileReference
             self.continueInBackground = info.continueInBackground
@@ -637,9 +631,6 @@ private final class MultipartFetchManager {
         self.partReady = partReady
         self.reportCompleteSize = reportCompleteSize
         self.finishWithError = finishWithError
-        if resource is TelegramCloudMediaResource {
-            Logger.shared.log("DownloadBoost", "engine=v1 mode=\(SGSimpleSettings.shared.downloadSpeedBoost) partBytes=\(self.defaultPartSize) pending=\(self.parallelParts)")
-        }
         
         /*if resource.id.stringRepresentation == "telegram-cloud-document-1-4922941873166746479" {
             let tempRanges = Promise<[(Range<Int64>, MediaBoxFetchPriority)]>()
@@ -757,7 +748,6 @@ private final class MultipartFetchManager {
     
     
     private func processFloodWaitError(error: String) {
-        Logger.shared.log("DownloadBoost", "engine=v1 serverWait=\(error)")
         var networkSpeedLimitSubject: NetworkSpeedLimitedEvent.DownloadSubject?
         if let location = self.parameters?.location {
             if let messageId = location.messageId {

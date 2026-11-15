@@ -90,6 +90,14 @@ open class TabBarControllerImpl: ViewController, TabBarController {
         return self.currentController?.navigationBar
     }
     
+    override public var navigationBarTransitionSource: NavigationBarTransitionSource? {
+        return self.currentController?.navigationBarTransitionSource
+    }
+
+    override public func navigationExpansionSource(above controller: ViewController, operation: NavigationExpansionOperation) -> NavigationExpansionSource? {
+        return self.currentController?.navigationExpansionSource(above: controller, operation: operation)
+    }
+    
     private let pendingControllerDisposable = MetaDisposable()
     
     private var theme: PresentationTheme
@@ -142,6 +150,10 @@ open class TabBarControllerImpl: ViewController, TabBarController {
         return self.tabBarControllerNode.isPointInsideContentArea(point: point)
     }
     
+    public func verticalTabBarFrame(for layout: ContainerViewLayout) -> CGRect? {
+        return self.tabBarControllerNode.sidePlacement(for: layout)?.frame
+    }
+    
     public func updateIsTabBarEnabled(_ value: Bool, transition: ContainedViewLayoutTransition) {
         self.tabBarControllerNode.updateIsTabBarEnabled(value, transition: transition)
     }
@@ -181,19 +193,28 @@ open class TabBarControllerImpl: ViewController, TabBarController {
                 if let validLayout = strongSelf.validLayout {
                     var updatedLayout = validLayout
                     
-                    var tabBarHeight: CGFloat
-                    var options: ContainerViewLayoutInsetOptions = []
-                    if validLayout.metrics.widthClass == .regular {
-                        options.insert(.input)
+                    if strongSelf.tabBarControllerNode.sidePlacement(for: validLayout) == nil {
+                        var tabBarHeight: CGFloat
+                        var options: ContainerViewLayoutInsetOptions = []
+                        if validLayout.metrics.widthClass == .regular {
+                            options.insert(.input)
+                        }
+                        let bottomInset: CGFloat = validLayout.insets(options: options).bottom
+                        if !validLayout.safeInsets.left.isZero {
+                            tabBarHeight = 34.0 + bottomInset
+                        } else {
+                            tabBarHeight = 49.0 + bottomInset
+                        }
+                        updatedLayout.intrinsicInsets.bottom = tabBarHeight
                     }
-                    let bottomInset: CGFloat = validLayout.insets(options: options).bottom
-                    if !validLayout.safeInsets.left.isZero {
-                        tabBarHeight = 34.0 + bottomInset
-                    } else {
-                        tabBarHeight = 49.0 + bottomInset
-                    }
-                    updatedLayout.intrinsicInsets.bottom = tabBarHeight
                     
+                    // MARK: Swiftgram
+                    // Keep the glass tab bar's inset when reselecting the current tab so bottom folders don't drop onto it.
+                    if strongSelf.controllers[index] === strongSelf.currentController, !strongSelf.tabBarControllerNode.tabBarHidden, let sgBottomInset = strongSelf.tabBarControllerNode.containerLayoutUpdated(validLayout, toolbar: strongSelf.currentController?.toolbar, transition: .immediate) {
+                        updatedLayout.intrinsicInsets.bottom = sgBottomInset
+                    }
+                    //
+
                     strongSelf.controllers[index].containerLayoutUpdated(updatedLayout, transition: .immediate)
                 }
                 let startTime = CFAbsoluteTimeGetCurrent()
@@ -360,6 +381,15 @@ open class TabBarControllerImpl: ViewController, TabBarController {
         }
     }
     
+    // Along the bottom unless its layout places it at a side. A bar hidden for a moment (search, selection) still counts,
+    // so that what lines up with it does not move meanwhile.
+    override open var showsBottomTabBar: Bool {
+        guard let layout = self.validLayout else {
+            return false
+        }
+        return self.tabBarControllerNode.sidePlacement(for: layout) == nil
+    }
+    
     override open func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
         
@@ -371,7 +401,7 @@ open class TabBarControllerImpl: ViewController, TabBarController {
             currentController.view.frame = CGRect(origin: CGPoint(), size: layout.size)
             
             var updatedLayout = layout
-            if !self.tabBarControllerNode.tabBarHidden {
+            if !self.tabBarControllerNode.tabBarHidden, let bottomInset {
                 updatedLayout.intrinsicInsets.bottom = bottomInset
             }
             
@@ -400,7 +430,7 @@ open class TabBarControllerImpl: ViewController, TabBarController {
             } else {
                 tabBarHeight = 49.0 + bottomInset
             }
-            if !self.tabBarControllerNode.tabBarHidden {
+            if !self.tabBarControllerNode.tabBarHidden && self.tabBarControllerNode.sidePlacement(for: layout) == nil {
                 updatedLayout.intrinsicInsets.bottom = tabBarHeight
             }
             
@@ -503,3 +533,12 @@ open class TabBarControllerImpl: ViewController, TabBarController {
         }
     }
 }
+
+
+// MARK: Swiftgram
+extension TabBarControllerImpl {
+    public var sgIsTabBarHidden: Bool {
+        return self.tabBarControllerNode.tabBarHidden
+    }
+}
+//

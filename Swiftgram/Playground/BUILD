@@ -1,3 +1,5 @@
+load("@rules_cc//cc:objc_library.bzl", "objc_library")
+
 load("@bazel_skylib//rules:common_settings.bzl",
     "bool_flag",
 )
@@ -44,6 +46,8 @@ swift_library(
         "//submodules/LegacyComponents:LegacyComponents",
         "//submodules/MediaPlayer:UniversalMediaPlayer",
         "//Swiftgram/SGSwiftUI:SGSwiftUI",
+        "//submodules/TelegramPresentationData:TelegramPresentationData",
+        "//submodules/TelegramUI/Components/NavigationBarNode:NavigationBarNode",
     ],
     data = [
         "//Telegram:GeneratedPresentationStrings/Resources/PresentationStrings.data",
@@ -63,7 +67,7 @@ ios_application(
         "//conditions:default": "codesigning/Playground.mobileprovision",
     }),
     infoplists = ["Resources/Info.plist"],
-    minimum_os_version = "14.0",
+    minimum_os_version = "15.0",
     visibility = ["//visibility:public"],
     strings = [
         "//Telegram:AppStringResources",
@@ -75,7 +79,6 @@ ios_application(
 xcodeproj(
     bazel_path = telegram_bazel_path,
     name = "Playground_xcodeproj",
-    build_mode = "bazel",
     project_name = "Playground",
     tags = ["manual"],
     top_level_targets = top_level_targets(

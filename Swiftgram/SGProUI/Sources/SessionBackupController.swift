@@ -2,7 +2,6 @@ import Foundation
 import UndoUI
 import AccountContext
 import TelegramCore
-import Postbox
 import Display
 import SwiftSignalKit
 import TelegramPresentationData
@@ -28,36 +27,24 @@ struct SessionBackup: Codable {
     }
     
     var userId: Int64 {
-        return PeerId(peerIdInternal).id._internalGetInt64Value()
+        return EnginePeer.Id(peerIdInternal).id._internalGetInt64Value()
     }
 }
 
 import SwiftUI
 import SGSwiftUI
-import LegacyUI
 import SGStrings
 
 
-@available(iOS 13.0, *)
 struct SessionBackupRow: View {
     @Environment(\.lang) var lang: String
+    @Environment(\.sgTheme) private var theme
     let backup: SessionBackup
     let isLoggedIn: Bool
     
     
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter
-    }()
-    
     var formattedDate: String {
-        if #available(iOS 15.0, *) {
-            return backup.date.formatted(date: .abbreviated, time: .shortened)
-        } else {
-            return dateFormatter.string(from: backup.date)
-        }
+        return backup.date.formatted(date: .abbreviated, time: .shortened)
     }
     
     var body: some View {
@@ -79,7 +66,7 @@ struct SessionBackupRow: View {
             
             Text((isLoggedIn ? "SessionBackup.LoggedIn" : "SessionBackup.LoggedOut").i18n(lang))
                 .font(.caption)
-                .foregroundColor(isLoggedIn ? .white : .secondary)
+                .foregroundColor(isLoggedIn ? theme.accentForegroundColor : theme.secondaryTextColor)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(isLoggedIn ? Color.accentColor : Color.secondary.opacity(0.1))
@@ -90,7 +77,6 @@ struct SessionBackupRow: View {
 }
 
 
-@available(iOS 13.0, *)
 struct BorderedButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -102,10 +88,10 @@ struct BorderedButtonStyle: ButtonStyle {
     }
 }
 
-@available(iOS 13.0, *)
 struct SessionBackupManagerView: View {
     @Environment(\.lang) var lang: String
-    weak var wrapperController: LegacyController?
+    @Environment(\.sgNavigation) private var navigation
+    private var wrapperController: ViewController? { navigation?.controller }
     let context: AccountContext
     
     @State private var sessions: [SessionBackup] = []
@@ -383,10 +369,12 @@ struct SessionBackupManagerView: View {
 //                }
             }
         }
+        .sgNavigationTitle("SessionBackup.Title".i18n(lang))
         .onAppear {
             withAnimation {
                 sessions = getBackedSessions()
             }
+            loggedInAccountsDisposable?.dispose()
             
             let accountsSignal = context.sharedContext.accountManager.accountRecords()
             |> deliverOnMainQueue
@@ -472,7 +460,7 @@ func backupSessionsFromView(_ view: AccountRecordsView<TelegramAccountManagerTyp
     
     for (peerId, record) in recordsToBackup {
         var backupName: String? = nil
-        if let accountWithInfo = accountsWithInfo.first(where: { $0.peer.id == PeerId(peerId) }) {
+        if let accountWithInfo = accountsWithInfo.first(where: { $0.peer.id == EnginePeer.Id(peerId) }) {
             if let username = accountWithInfo.peer.addressName {
                 backupName = "@\(username)"
             } else {
@@ -490,29 +478,13 @@ func backupSessionsFromView(_ view: AccountRecordsView<TelegramAccountManagerTyp
 }
 
 
-@available(iOS 13.0, *)
 public func sgSessionBackupManagerController(context: AccountContext, presentationData: PresentationData? = nil) -> ViewController {
-    let theme = presentationData?.theme ?? (UITraitCollection.current.userInterfaceStyle == .dark ? defaultDarkColorPresentationTheme : defaultPresentationTheme)
-    let strings = presentationData?.strings ?? defaultPresentationStrings
-
-    let legacyController = LegacySwiftUIController(
-        presentation: .navigation,
-        theme: theme,
-        strings: strings
-    )
-    legacyController.statusBar.statusBarStyle = theme.rootController
-        .statusBarStyle.style
-    legacyController.title = "SessionBackup.Title".i18n(strings.baseLanguageCode)
-
-    let swiftUIView = SGSwiftUIView<SessionBackupManagerView>(
-        legacyController: legacyController,
-        manageSafeArea: true,
-        content: {
-            SessionBackupManagerView(wrapperController: legacyController, context: context)
-        }
-    )
-    let controller = UIHostingController(rootView: swiftUIView, ignoreSafeArea: true)
-    legacyController.bind(controller: controller)
-
-    return legacyController
+    let presentationData = presentationData ?? context.sharedContext.currentPresentationData.with { $0 }
+    return SGSwiftUIController(
+        title: "SessionBackup.Title".i18n(presentationData.strings.baseLanguageCode),
+        presentationData: presentationData,
+        presentationDataSignal: context.sharedContext.presentationData
+    ) {
+        SessionBackupManagerView(context: context)
+    }
 }
