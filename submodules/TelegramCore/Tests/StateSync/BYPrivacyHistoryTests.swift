@@ -120,4 +120,47 @@ final class BYPrivacyHistoryTests: StateSyncTestCase {
         }
         XCTAssertEqual(self.history().records.map(\.messageId), [13])
     }
+    func testTimedAndViewOnceMessagesKeepConsumptionAndAreNotArchived() {
+        let peer = self.seedUserChat(500)
+        self.fixture.seedAccount(state: self.state(pts: 100))
+        BYPrivacy.update(self.accountId) { $0.hideReadReceipts = true; $0.keepDeleted = true }
+        self.fixture.transaction { transaction -> Void in
+            for (offset, timeout) in [Int32(5), viewOnceTimeout].enumerated() {
+                let id = self.messageId(peer, Int32(offset + 12))
+                let message = StoreMessage(id: id, customStableId: nil, globallyUniqueId: nil, groupingKey: nil, threadId: nil,
+                    timestamp: self.baseDate, flags: [.Incoming], tags: [], globalTags: [], localTags: [],
+                    forwardInfo: nil, authorId: peer, text: "timed",
+                    attributes: [AutoclearTimeoutMessageAttribute(timeout: timeout, countdownBeginTime: nil)], media: [])
+                let _ = transaction.addMessages([message], location: .Random)
+                XCTAssertFalse(bySuppressContentRead(transaction: transaction, id: id))
+                byArchiveDeletedMessages(transaction: transaction, ids: [id])
+            }
+        }
+        XCTAssertTrue(self.history().records.isEmpty)
+    }
+
+    func testQueuedCloudReceiptCompletesWithoutNetworkSend() {
+        let peer = self.seedUserChat(500)
+        self.launchIdle()
+        self.fixture.storeMessage(peerId: peer, id: 12, timestamp: self.baseDate, authorId: peer, text: "unread")
+        self.fixture.seedReadState(peerId: peer, maxIncomingReadId: 11, maxOutgoingReadId: 0, maxKnownId: 12, count: 1)
+        self.fixture.transaction { transaction -> Void in
+            _internal_readPeerHistoryToTopInteractively(transaction: transaction, peer: transaction.getPeer(peer)!, principalNamespace: Namespaces.Message.Cloud)
+        }
+        BYPrivacy.update(self.accountId) { $0.hideReadReceipts = true }
+        let completed = self.expectation(description: "suppressed receipt completes")
+        let disposable = synchronizePeerReadState(network: self.network, postbox: self.fixture.postbox, stateManager: self.stateManager,
+            peerId: peer, push: true, validate: false).start(error: { _ in
+                XCTFail("suppression must not create a retry")
+                completed.fulfill()
+            }, completed: { completed.fulfill() })
+        self.wait(for: [completed], timeout: 10)
+        disposable.dispose()
+        XCTAssertFalse(self.server.requestNames.contains("messages.readHistory"))
+        let operation = self.fixture.wait(self.fixture.postbox.synchronizePeerReadStatesView() |> map { $0.operations[peer] }) ?? nil
+        XCTAssertNil(operation)
+        BYPrivacy.update(self.accountId) { $0.hideReadReceipts = false }
+        XCTAssertFalse(self.server.requestNames.contains("messages.readHistory"))
+    }
+
 }

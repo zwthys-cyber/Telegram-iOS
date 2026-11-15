@@ -85,3 +85,11 @@ GitHub 使用最新 macOS 27 ARM64 环境 `xcode-27`，从上游 `versions.json`
 仅在 GitHub Actions 编译与测试。初始 ABI/策略/历史模型预检已通过，后续完整应用和真实 Postbox 集成结果以当前提交的 Actions 为准。
 当前会话未提供 XcodeBuildMCP，因此手机交互仍需安装者验证；不把编译或 CLI 模拟器测试称为 UI 验收。
 预期界面：所有新开关初始关闭，旧值保留；切换账号后互不影响；历史列表分页稳定，中文/英文、浅/深色长文本不裁切；清理前二次确认；禁用插件后原有聊天行为恢复。
+
+### Representative feature references
+
+Compared on 2026-11-15 against the projects' own descriptions:
+- [AyuGram releases](https://github.com/AyuGram/AyuGramDesktop/releases) describe per-account Ghost Mode and local deletion/history controls. [Its saving guide](https://github.com/AyuGram/AyuGramDocs/blob/main/desktop/saving.md) distinguishes stored text history from media preservation.
+- [Nicegram's Ghost Mode guide](https://nicegram.app/articles/ghost) describes last-seen privacy plus chat preview, including the limits of sending/typing while hidden.
+
+BYPlugin implements independent per-account activity/read/story toggles and a bounded local history viewer. It does not change Telegram's server privacy settings automatically. Sending messages, calls, another logged-in client, and requests already sent can still reveal activity. New privacy/history switches default off; earlier local-saving and interface preferences are retained. History only captures versions this device actually had; missing past versions and media bytes cannot be recovered by this viewer.

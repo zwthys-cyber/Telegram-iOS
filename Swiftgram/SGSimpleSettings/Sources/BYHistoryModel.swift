@@ -11,7 +11,7 @@ public struct BYHistoryVersion: Codable, Equatable {
         self.text = String(text.prefix(16384))
         self.media = Array(media.prefix(20)).map { String($0.prefix(1024)) }
         self.timestamp = timestamp
-        self.truncated = self.text != text || media.count > 20
+        self.truncated = self.text != text || self.media != media
     }
 
     public func sameContent(as other: BYHistoryVersion) -> Bool {

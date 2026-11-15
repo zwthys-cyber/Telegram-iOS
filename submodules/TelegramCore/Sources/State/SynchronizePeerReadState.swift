@@ -290,6 +290,7 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
     } else {
         return inputPeer(postbox: postbox, peerId: peerId)
         |> mapToSignal { inputPeer -> Signal<PeerReadState, PeerReadStateValidationError> in
+            if BYPrivacy.effective(stateManager.accountPeerId.toInt64()).hideReadReceipts { return .single(readState) }
             switch inputPeer {
             case let .inputPeerChannel(inputPeerChannelData):
                 let (channelId, accessHash) = (inputPeerChannelData.channelId, inputPeerChannelData.accessHash)
