@@ -3,7 +3,7 @@
 #import <MtProtoKit/MtProtoKit.h>
 
 #import <UIKit/UIKit.h>
-#import <MobileCoreServices/MobileCoreServices.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <AddressBook/AddressBook.h>
 #import <AVFoundation/AVFoundation.h>
 #import <PassKit/PassKit.h>
@@ -12,7 +12,14 @@
 
 @implementation TGItemProviderSignals
 
+// MARK: Swiftgram
 + (NSArray<MTSignal *> *)itemSignalsForInputItems:(NSArray *)inputItems
+{
+    return [self sgItemSignalsForInputItems:inputItems imageMaxDimension:1280.0 imageQuality:0.52];
+}
+
++ (NSArray<MTSignal *> *)sgItemSignalsForInputItems:(NSArray *)inputItems imageMaxDimension:(CGFloat)imageMaxDimension imageQuality:(CGFloat)imageQuality
+//
 {
     NSMutableArray *itemSignals = [[NSMutableArray alloc] init];
     NSMutableArray *providers = [[NSMutableArray alloc] init];
@@ -21,25 +28,25 @@
     {
         for (NSItemProvider *provider in item.attachments)
         {
-            if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeMovie])
+            if ([provider hasItemConformingToTypeIdentifier:UTTypeMovie.identifier])
                 [providers addObject:provider];
-            else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeAudio])
+            else if ([provider hasItemConformingToTypeIdentifier:UTTypeAudio.identifier])
                 [providers addObject:provider];
-            else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeImage])
+            else if ([provider hasItemConformingToTypeIdentifier:UTTypeImage.identifier])
                 [providers addObject:provider];
-            else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeFileURL])
+            else if ([provider hasItemConformingToTypeIdentifier:UTTypeFileURL.identifier])
                 [providers addObject:provider];
-            else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeURL]) {
+            else if ([provider hasItemConformingToTypeIdentifier:UTTypeURL.identifier]) {
                 [providers removeAllObjects];
                 
                 [providers addObject:provider];
                 break;
             }
-            else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeVCard])
+            else if ([provider hasItemConformingToTypeIdentifier:UTTypeVCard.identifier])
                 [providers addObject:provider];
-            else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeText])
+            else if ([provider hasItemConformingToTypeIdentifier:UTTypeText.identifier])
                 [providers addObject:provider];
-            else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeData])
+            else if ([provider hasItemConformingToTypeIdentifier:UTTypeData.identifier])
                 [providers addObject:provider];
             else if ([provider hasItemConformingToTypeIdentifier:@"com.apple.pkpass"])
                 [providers addObject:provider];
@@ -52,15 +59,15 @@
         providerIndex++;
         
         MTSignal *dataSignal = nil;
-        if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeAudio])
+        if ([provider hasItemConformingToTypeIdentifier:UTTypeAudio.identifier])
             dataSignal = [self signalForAudioItemProvider:provider];
-        else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeMovie])
+        else if ([provider hasItemConformingToTypeIdentifier:UTTypeMovie.identifier])
             dataSignal = [self signalForVideoItemProvider:provider];
-        else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeGIF])
+        else if ([provider hasItemConformingToTypeIdentifier:UTTypeGIF.identifier])
             dataSignal = [self signalForDataItemProvider:provider];
-        else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeImage])
-            dataSignal = [self signalForImageItemProvider:provider];
-        else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeFileURL])
+        else if ([provider hasItemConformingToTypeIdentifier:UTTypeImage.identifier])
+            dataSignal = [self sgSignalForImageItemProvider:provider imageMaxDimension:imageMaxDimension imageQuality:imageQuality]; // MARK: Swiftgram
+        else if ([provider hasItemConformingToTypeIdentifier:UTTypeFileURL.identifier])
         {
             dataSignal = [[self signalForUrlItemProvider:provider] mapToSignal:^MTSignal *(NSURL *url)
             {
@@ -77,13 +84,13 @@
                 return [MTSignal single:@{@"data": data, @"fileName": fileName, @"mimeType": mimeType}];
             }];
         }
-        else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeVCard])
+        else if ([provider hasItemConformingToTypeIdentifier:UTTypeVCard.identifier])
             dataSignal = [self signalForVCardItemProvider:provider];
-        else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeText])
+        else if ([provider hasItemConformingToTypeIdentifier:UTTypeText.identifier])
             dataSignal = [self signalForTextItemProvider:provider];
-        else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeURL])
+        else if ([provider hasItemConformingToTypeIdentifier:UTTypeURL.identifier])
             dataSignal = [self signalForTextUrlItemProvider:provider];
-        else if ([provider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeData])
+        else if ([provider hasItemConformingToTypeIdentifier:UTTypeData.identifier])
         {
             dataSignal = [[self signalForDataItemProvider:provider] map:^id(NSDictionary *dict)
             {
@@ -125,7 +132,7 @@
 {
     return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber)
     {
-        [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeData options:nil completionHandler:^(NSData *data, NSError *error)
+        [itemProvider loadItemForTypeIdentifier:UTTypeData.identifier options:nil completionHandler:^(NSData *data, NSError *error)
         {
             if (error != nil)
                 [subscriber putError:nil];
@@ -168,23 +175,23 @@ __unused static CGSize TGFitSize(CGSize size, CGSize maxSize) {
     return size;
 }
 
-+ (MTSignal *)signalForImageItemProvider:(NSItemProvider *)itemProvider
++ (MTSignal *)sgSignalForImageItemProvider:(NSItemProvider *)itemProvider imageMaxDimension:(CGFloat)imageMaxDimension imageQuality:(CGFloat)imageQuality // MARK: Swiftgram
 {
     return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber)
     {
         bool preferAsFile = false;
         
-        CGSize maxSize = CGSizeMake(1280.0, 1280.0);
+        CGSize maxSize = CGSizeMake(imageMaxDimension, imageMaxDimension); // MARK: Swiftgram
         NSDictionary *imageOptions = @{
             NSItemProviderPreferredImageSizeKey: [NSValue valueWithCGSize:maxSize]
         };
         if (preferAsFile) {
             imageOptions = nil;
         }
-        if ([itemProvider hasItemConformingToTypeIdentifier:(NSString *)kUTTypeImage]) {
-            [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeImage options:imageOptions completionHandler:^(id<NSSecureCoding> _Nullable item, NSError * _Null_unspecified error) {
+        if ([itemProvider hasItemConformingToTypeIdentifier:UTTypeImage.identifier]) {
+            [itemProvider loadItemForTypeIdentifier:UTTypeImage.identifier options:imageOptions completionHandler:^(id<NSSecureCoding> _Nullable item, NSError * _Null_unspecified error) {
                 if (error != nil && ![(NSObject *)item respondsToSelector:@selector(CGImage)] && ![(NSObject *)item respondsToSelector:@selector(absoluteString)]) {
-                    [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeData options:nil completionHandler:^(NSData *data, NSError *error)
+                    [itemProvider loadItemForTypeIdentifier:UTTypeData.identifier options:nil completionHandler:^(NSData *data, NSError *error)
                      {
                          if (error != nil)
                              [subscriber putError:nil];
@@ -234,8 +241,8 @@ __unused static CGSize TGFitSize(CGSize size, CGSize maxSize) {
                             
                             NSString *tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSString alloc] initWithFormat:@"img%d", (int)arc4random()]];
                             CFURLRef tempUrl = (__bridge CFURLRef)[NSURL fileURLWithPath:tempPath];
-                            CGImageDestinationRef destination = CGImageDestinationCreateWithURL(tempUrl, kUTTypeJPEG, 1, NULL);
-                            NSDictionary *properties = @{ (__bridge NSString *)kCGImageDestinationLossyCompressionQuality: @(0.52)};
+                            CGImageDestinationRef destination = CGImageDestinationCreateWithURL(tempUrl, (__bridge CFStringRef)UTTypeJPEG.identifier, 1, NULL);
+                            NSDictionary *properties = @{ (__bridge NSString *)kCGImageDestinationLossyCompressionQuality: @(imageQuality)}; // MARK: Swiftgram
 
                             CGImageDestinationSetProperties(destination, (__bridge CFDictionaryRef)properties);
                             CGImageDestinationAddImage(destination, image, nil);
@@ -263,7 +270,7 @@ __unused static CGSize TGFitSize(CGSize size, CGSize maxSize) {
                 }
             }];
         } else {
-            [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeData options:nil completionHandler:^(NSData *data, NSError *error)
+            [itemProvider loadItemForTypeIdentifier:UTTypeData.identifier options:nil completionHandler:^(NSData *data, NSError *error)
              {
                  if (error != nil)
                      [subscriber putError:nil];
@@ -283,7 +290,7 @@ __unused static CGSize TGFitSize(CGSize size, CGSize maxSize) {
 {
     MTSignal *itemSignal = [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber)
     {
-        [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeAudio options:nil completionHandler:^(NSURL *url, NSError *error)
+        [itemProvider loadItemForTypeIdentifier:UTTypeAudio.identifier options:nil completionHandler:^(NSURL *url, NSError *error)
         {
             if (error != nil)
                [subscriber putError:nil];
@@ -399,7 +406,7 @@ __unused static CGSize TGFitSize(CGSize size, CGSize maxSize) {
 {
     MTSignal *assetSignal = [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber)
     {
-        [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeMovie options:nil completionHandler:^(NSURL *url, NSError *error)
+        [itemProvider loadItemForTypeIdentifier:UTTypeMovie.identifier options:nil completionHandler:^(NSURL *url, NSError *error)
         {
             if (error != nil)
             {
@@ -459,7 +466,7 @@ __unused static CGSize TGFitSize(CGSize size, CGSize maxSize) {
 {
     return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber)
     {
-        [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeFileURL options:nil completionHandler:^(NSURL *url, NSError *error)
+        [itemProvider loadItemForTypeIdentifier:UTTypeFileURL.identifier options:nil completionHandler:^(NSURL *url, NSError *error)
         {
             if (error != nil)
                 [subscriber putError:nil];
@@ -478,7 +485,7 @@ __unused static CGSize TGFitSize(CGSize size, CGSize maxSize) {
 {
     return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber)
     {
-        [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeText options:nil completionHandler:^(NSString *text, NSError *error)
+        [itemProvider loadItemForTypeIdentifier:UTTypeText.identifier options:nil completionHandler:^(NSString *text, NSError *error)
         {
             if (error != nil)
                 [subscriber putError:nil];
@@ -497,7 +504,7 @@ __unused static CGSize TGFitSize(CGSize size, CGSize maxSize) {
 {
     return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber)
     {
-        [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeURL options:nil completionHandler:^(NSURL *url, NSError *error)
+        [itemProvider loadItemForTypeIdentifier:UTTypeURL.identifier options:nil completionHandler:^(NSURL *url, NSError *error)
         {
             if (error != nil)
                 [subscriber putError:nil];
@@ -516,7 +523,7 @@ __unused static CGSize TGFitSize(CGSize size, CGSize maxSize) {
 {
     return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber)
     {
-        [itemProvider loadItemForTypeIdentifier:(NSString *)kUTTypeVCard options:nil completionHandler:^(NSData *vcard, NSError *error)
+        [itemProvider loadItemForTypeIdentifier:UTTypeVCard.identifier options:nil completionHandler:^(NSData *vcard, NSError *error)
         {
             if (error != nil)
                 [subscriber putError:nil];

@@ -1,5 +1,4 @@
-// MARK: Swiftgram
-import SGInputToolbar
+import SGInputToolbar // MARK: Swiftgram
 import SwiftUI
 import SGSimpleSettings
 
@@ -9,7 +8,7 @@ import Display
 import AsyncDisplayKit
 import SwiftSignalKit
 import TelegramCore
-import MobileCoreServices
+import UniformTypeIdentifiers
 import TelegramPresentationData
 import TextFormat
 import AccountContext
@@ -257,6 +256,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
     private let context: AccountContext
 
     private let glass: Bool
+    public var inputPanelBottomSpacing: CGFloat
     private let isCaption: Bool
     private let isAttachment: Bool
     private let customEmojiAvailable: Bool
@@ -327,9 +327,11 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
 
     private let hapticFeedback = HapticFeedback()
     
-    // MARK: Swiftgram
     //    private var toolbarHostingController: UIViewController? //Any? //  UIHostingController<ChatToolbarView>?
+    // MARK: Swiftgram
     private var toolbarNode: ASDisplayNode?
+    private var sgToolbarFormatting = false
+    //
 
     public var inputTextState: ChatTextInputState {
         if let textInputNode = self.textInputNode {
@@ -427,10 +429,11 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
 
     private var maxCaptionLength: Int32?
 
-    public init(context: AccountContext, presentationInterfaceState: ChatPresentationInterfaceState, glass: Bool = false, isCaption: Bool = false, isAttachment: Bool = false, isScheduledMessages: Bool = false, customEmojiAvailable: Bool, presentController: @escaping (ViewController) -> Void, presentInGlobalOverlay: @escaping (ViewController) -> Void, getNavigationController: @escaping () -> NavigationController?) {
+    public init(context: AccountContext, presentationInterfaceState: ChatPresentationInterfaceState, glass: Bool = false, isCaption: Bool = false, isAttachment: Bool = false, isScheduledMessages: Bool = false, customEmojiAvailable: Bool, presentController: @escaping (ViewController) -> Void, presentInGlobalOverlay: @escaping (ViewController) -> Void, getNavigationController: @escaping () -> NavigationController?, inputPanelBottomSpacing: CGFloat? = nil) {
         self.context = context
         self.presentationInterfaceState = presentationInterfaceState
         self.glass = glass
+        self.inputPanelBottomSpacing = inputPanelBottomSpacing ?? (glass ? 11.0 : 0.0)
         self.isCaption = isCaption
         self.isAttachment = isAttachment
         self.customEmojiAvailable = customEmojiAvailable
@@ -561,6 +564,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
                 hasTrending: false,
                 hasStickers: false,
                 hasGifs: false,
+                maskEdge: .clip,
                 sendGif: nil
             )
         )
@@ -618,8 +622,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
         )
         self.inputMediaInteraction?.forceTheme = presentationInterfaceState.theme
         
-        // MARK: Swiftgram
-        self.initToolbarIfNeeded(context: context)
+        self.initToolbarIfNeeded(context: context) // MARK: Swiftgram
     }
 
     public var sendPressed: ((NSAttributedString?) -> Void)?
@@ -764,6 +767,8 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
 
             textInputNode.frame = CGRect(origin: CGPoint(x: self.textInputViewInternalInsets.left, y: self.textInputViewInternalInsets.top), size: CGSize(width: textInputFrame.size.width - (self.textInputViewInternalInsets.left + self.textInputViewInternalInsets.right), height: textInputFrame.size.height - self.textInputViewInternalInsets.top - self.textInputViewInternalInsets.bottom))
             textInputNode.view.layoutIfNeeded()
+            // `.none` by default, and correct here: this panel does not grow a field around a moving
+            // caret, so it has nothing to say about one. See the caret-reveal design.
             textInputNode.textView.updateLayout(size: textInputNode.bounds.size)
             self.updateSpoiler()
         }
@@ -894,6 +899,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
     }
 
     public func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, keyboardHeight: CGFloat, additionalSideInsets: UIEdgeInsets, textFieldMaxHeight: CGFloat, availableHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, isMediaInputExpanded: Bool) -> CGFloat {
+        self.toolbarNode?.view.overrideUserInterfaceStyle = interfaceState.theme.overallDarkAppearance ? .dark : .light // MARK: Swiftgram
         let hadLayout = self.validLayout != nil
         let previousLayout = self.validLayout
         self.validLayout = (width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, keyboardHeight: keyboardHeight, additionalSideInsets: additionalSideInsets, textFieldMaxHeight: textFieldMaxHeight, availableHeight: availableHeight, metrics: metrics, isSecondary: isSecondary)
@@ -1081,7 +1087,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
             }
         }
 
-        let inputPanelHeight = panelContentHeight + (self.glass ? 11.0 : 0.0)
+        let inputPanelHeight = panelContentHeight + self.inputPanelBottomSpacing
         var totalHeight = inputPanelHeight
         var inputMediaHeight: CGFloat = 0.0
         self.currentAdditionalInputHeight = 0.0
@@ -1916,7 +1922,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
 
             let (_, textFieldHeight) = self.calculateTextFieldMetrics(width: layout.width - leftInset - rightInset - layout.additionalSideInsets.right, maxHeight: layout.textFieldMaxHeight, metrics: layout.metrics)
             let panelContentHeight = self.panelHeight(textFieldHeight: textFieldHeight, metrics: layout.metrics)
-            let totalHeight = panelContentHeight + (self.glass ? 11.0 : 0.0) + self.currentAdditionalInputHeight
+            let totalHeight = panelContentHeight + self.inputPanelBottomSpacing + self.currentAdditionalInputHeight
             if self.currentHeight != totalHeight {
                 self.updateHeight(animated)
                 self.heightUpdated?(animated)
@@ -2152,7 +2158,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
             text = current.inputText.attributedSubstring(from: NSMakeRange(current.selectionRange.lowerBound, current.selectionRange.count)).string
             return (current, inputMode)
         }
-        if let speechHolder = speakText(context: self.context, text: text) {
+        if let speechHolder = speakText(text: text) {
             speechHolder.completion = { [weak self, weak speechHolder] in
                 if let strongSelf = self, strongSelf.currentSpeechHolder == speechHolder {
                     strongSelf.currentSpeechHolder = nil
@@ -2177,21 +2183,21 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
     @objc func formatAttributesBold(_ sender: Any) {
         self.inputMenu.back()
         self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
-            return (chatTextInputAddFormattingAttribute(current, attribute: ChatTextInputAttributes.bold, value: nil), inputMode)
+            return (chatTextInputAddFormattingAttribute(self.sgToolbarFormatting ? sgChatTextInputStateSelectingLastWordIfIdle(current) : current, attribute: ChatTextInputAttributes.bold, value: nil), inputMode) // MARK: Swiftgram
         }
     }
 
     @objc func formatAttributesItalic(_ sender: Any) {
         self.inputMenu.back()
         self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
-            return (chatTextInputAddFormattingAttribute(current, attribute: ChatTextInputAttributes.italic, value: nil), inputMode)
+            return (chatTextInputAddFormattingAttribute(self.sgToolbarFormatting ? sgChatTextInputStateSelectingLastWordIfIdle(current) : current, attribute: ChatTextInputAttributes.italic, value: nil), inputMode) // MARK: Swiftgram
         }
     }
 
     @objc func formatAttributesMonospace(_ sender: Any) {
         self.inputMenu.back()
         self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
-            return (chatTextInputAddFormattingAttribute(current, attribute: ChatTextInputAttributes.monospace, value: nil), inputMode)
+            return (chatTextInputAddFormattingAttribute(self.sgToolbarFormatting ? sgChatTextInputStateSelectingLastWordIfIdle(current) : current, attribute: ChatTextInputAttributes.monospace, value: nil), inputMode) // MARK: Swiftgram
         }
     }
 
@@ -2207,14 +2213,14 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
     @objc func formatAttributesStrikethrough(_ sender: Any) {
         self.inputMenu.back()
         self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
-            return (chatTextInputAddFormattingAttribute(current, attribute: ChatTextInputAttributes.strikethrough, value: nil), inputMode)
+            return (chatTextInputAddFormattingAttribute(self.sgToolbarFormatting ? sgChatTextInputStateSelectingLastWordIfIdle(current) : current, attribute: ChatTextInputAttributes.strikethrough, value: nil), inputMode) // MARK: Swiftgram
         }
     }
 
     @objc func formatAttributesUnderline(_ sender: Any) {
         self.inputMenu.back()
         self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
-            return (chatTextInputAddFormattingAttribute(current, attribute: ChatTextInputAttributes.underline, value: nil), inputMode)
+            return (chatTextInputAddFormattingAttribute(self.sgToolbarFormatting ? sgChatTextInputStateSelectingLastWordIfIdle(current) : current, attribute: ChatTextInputAttributes.underline, value: nil), inputMode) // MARK: Swiftgram
         }
     }
 
@@ -2231,7 +2237,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
         }
 
         self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
-            return (chatTextInputAddFormattingAttribute(current, attribute: ChatTextInputAttributes.spoiler, value: nil), inputMode)
+            return (chatTextInputAddFormattingAttribute(self.sgToolbarFormatting ? sgChatTextInputStateSelectingLastWordIfIdle(current) : current, attribute: ChatTextInputAttributes.spoiler, value: nil), inputMode) // MARK: Swiftgram
         }
 
         self.updateSpoilersRevealed(animated: animated)
@@ -2241,7 +2247,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
         self.inputMenu.back()
 
         self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
-            return (chatTextInputAddFormattingAttribute(current, attribute: ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .quote, isCollapsed: false)), inputMode)
+            return (chatTextInputAddFormattingAttribute(self.sgToolbarFormatting ? sgChatTextInputStateSelectingLastWordIfIdle(current) : current, attribute: ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .quote, isCollapsed: false)), inputMode) // MARK: Swiftgram
         }
     }
 
@@ -2249,7 +2255,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
         self.inputMenu.back()
 
         self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
-            return (chatTextInputAddFormattingAttribute(current, attribute: ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .code(language: nil), isCollapsed: false)), inputMode)
+            return (chatTextInputAddFormattingAttribute(self.sgToolbarFormatting ? sgChatTextInputStateSelectingLastWordIfIdle(current) : current, attribute: ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .code(language: nil), isCollapsed: false)), inputMode) // MARK: Swiftgram
         }
     }
 
@@ -2312,7 +2318,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
         let pasteboard = UIPasteboard.general
 
         var attributedString: NSAttributedString?
-        if let data = pasteboard.data(forPasteboardType: kUTTypeRTF as String) {
+        if let data = pasteboard.data(forPasteboardType: UTType.rtf.identifier) {
             attributedString = chatInputStateStringFromRTF(data, type: NSAttributedString.DocumentType.rtf)
         } else if let data = pasteboard.data(forPasteboardType: "com.apple.flat-rtfd") {
             attributedString = chatInputStateStringFromRTF(data, type: NSAttributedString.DocumentType.rtfd)
@@ -2429,71 +2435,51 @@ extension AttachmentTextInputPanelNode {
         guard context.sharedContext.immediateSGStatus.status > 1 else { return }
         guard self.toolbarNode == nil else { return }
         let toolbarView = ChatToolbarView(
-            onQuote: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.formatAttributesQuote(strongSelf)
-            },
-            onSpoiler: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.formatAttributesSpoiler(strongSelf)
-            },
-            onBold: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.formatAttributesBold(strongSelf)
-            },
-            onItalic: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.formatAttributesItalic(strongSelf)
-            },
-            onDate: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.interfaceInteraction?.openDateEditing()
-            },
-            onMonospace: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.formatAttributesMonospace(strongSelf)
-            },
-            onLink: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.formatAttributesLink(self!)
-            },
-            onStrikethrough: { [weak self]
-                in guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.formatAttributesStrikethrough(strongSelf)
-            },
-            onUnderline: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.formatAttributesUnderline(strongSelf)
-            },
-            onCode: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
-                strongSelf.formatAttributesCodeBlock(strongSelf)
-            },
-            onNewLine: { [weak self] in
-                guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.sgSetNewLine()
-            },
-            // TODO(swiftgram): Binding
+            showsDateAction: true,
             showNewLine: .constant(true), //.constant(self.sendWithReturnKey)
-            onClearFormatting: { [weak self] in
+            hasInputSelection: { [weak self] in
+                return (self?.textInputNode?.selectedRange.length ?? 0) > 0
+            },
+            onAction: { [weak self] action in
                 guard let strongSelf = self else { return }
-                strongSelf.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
-                    return (chatTextInputAddFormattingAttribute(forceRemoveAll: true, current, attribute: ChatTextInputAttributes.allAttributes[0], value: nil), inputMode)
+                strongSelf.sgToolbarFormatting = true
+                defer { strongSelf.sgToolbarFormatting = false }
+                switch action {
+                case .quote:
+                    strongSelf.formatAttributesQuote(strongSelf)
+                case .spoiler:
+                    strongSelf.formatAttributesSpoiler(strongSelf)
+                case .bold:
+                    strongSelf.formatAttributesBold(strongSelf)
+                case .italic:
+                    strongSelf.formatAttributesItalic(strongSelf)
+                case .date:
+                    strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
+                    strongSelf.interfaceInteraction?.openDateEditing()
+                case .monospace:
+                    strongSelf.formatAttributesMonospace(strongSelf)
+                case .link:
+                    strongSelf.interfaceInteraction?.sgSelectLastWordIfIdle()
+                    strongSelf.formatAttributesLink(strongSelf)
+                case .underline:
+                    strongSelf.formatAttributesUnderline(strongSelf)
+                case .strikethrough:
+                    strongSelf.formatAttributesStrikethrough(strongSelf)
+                case .code:
+                    strongSelf.formatAttributesCodeBlock(strongSelf)
+                case .newLine:
+                    strongSelf.interfaceInteraction?.sgSetNewLine()
+                case .clearFormatting:
+                    strongSelf.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
+                        return (chatTextInputAddFormattingAttribute(forceRemoveAll: true, current, attribute: ChatTextInputAttributes.allAttributes[0], value: nil), inputMode)
+                    }
                 }
             }
         )
         let toolbarHostingController = UIHostingController(rootView: toolbarView)
         toolbarHostingController.view.backgroundColor = .clear
+        let theme = self.presentationInterfaceState?.theme ?? context.sharedContext.currentPresentationData.with { $0 }.theme
+        toolbarHostingController.view.overrideUserInterfaceStyle = theme.overallDarkAppearance ? .dark : .light
         let toolbarNode = ASDisplayNode { toolbarHostingController.view }
         self.toolbarNode = toolbarNode
         // assigning toolbarHostingController bugs responsivness and overrides layout
@@ -2520,3 +2506,4 @@ extension AttachmentTextInputPanelNode {
         return toolbarHeight + toolbarSpacing
     }
 }
+//

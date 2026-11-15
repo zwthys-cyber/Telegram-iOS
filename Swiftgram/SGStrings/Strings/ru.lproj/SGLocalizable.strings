@@ -141,12 +141,19 @@
 "Settings.DefaultEmojisFirst.Notice" = "Показывать стандартные эмодзи перед Premium в эмодзи-клавиатуре";
 
 /* Date when chat was created. "created: 24 May 2016" */
-"Chat.Created" = "создан: %@";
+"Chat.Created.Label" = "дата создания";
+"Chat.Created.Copied" = "Дата создания скопирована";
 
 /* Date when user joined the chat. "Joined Swiftgram Chat" */
-"Chat.JoinedDateTitle" = "Присоединился к %@";
+"Chat.JoinedDateTitle" = "дата вступления в %@";
+"Chat.JoinedDate.Copied" = "Дата вступления скопирована";
 /* Date when user registered in Telegram. Will be shown like "Registered\n24 May 2016" */
-"Chat.RegDate" = "Дата регистрации";
+"Chat.RegDate" = "дата регистрации";
+"Chat.RegDate.Copied" = "Дата регистрации скопирована";
+"Chat.ID" = "id";
+"Chat.ID.Copy" = "Копировать ID";
+"Chat.ID.Copied" = "ID скопировано";
+"Chat.DataCenter.LearnMore" = "Подробнее о Датацентрах Telegram";
 
 "Settings.messageDoubleTapActionOutgoingEdit" = "Редактирование двойным тапом";
 
@@ -192,6 +199,9 @@
 "SessionBackup.RemoveFromApp.Title" = "Удалить аккаунт из приложения?";
 "SessionBackup.RemoveFromApp.Text" = "%@ сессия БУДЕТ УДАЛЕНА из Swiftgram! Сессия останется активной, чтобы вы могли восстановить ее позже.";
 "SessionBackup.Notice" = "Сессии шифруются и хранятся в Keychain устройства. Сессии никогда не покидают ваше устройство.\n\nВАЖНО: Чтобы восстановить сессии на новом устройстве или после сброса системы, ОБЯЗАТЕЛЬНО включите шифрование резервных копий ОС, иначе Keychain будет утерян при восстановлении.\n\nПРИМЕЧАНИЕ: Сессии всё ещё могут быть разлогинены самим Telegram или с другого устройства.";
+
+"AuthorizationError.Notice" = "Telegram разлогинил текущую сессию.";
+"AuthorizationError.PossibleReasons" = "Telegram не сообщает причину, но это могло произойти из-за частой смены IP/VPN или завершения сессии с другого устройства.";
 
 "MessageFilter.Title" = "Фильтр сообщений";
 "MessageFilter.SubTitle" = "Убирает отвлекающие факторы и уменьшает видимость сообщений, содержащих ключевые слова ниже.\nКлючевые слова чувствительны к регистру.";
@@ -272,3 +282,5 @@
 "Settings.NY.Style.snow" = "Снег";
 "Settings.NY.Style.lightning" = "Молнии";
 "Settings.NY.Notice" = "Доступны только на ограниченное время!";
+"Settings.videoControlsInFooter" = "Кнопки видео снизу";
+"Settings.HideAccountInNotifications" = "Скрыть аккаунт в уведомлениях";

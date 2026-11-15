@@ -1,3 +1,7 @@
+// MARK: Swiftgram
+import SGInputToolbar
+//
+
 import Foundation
 import UIKit
 import Display
@@ -10,12 +14,13 @@ import EmojiTextAttachmentView
 import AccountContext
 import TextFormat
 import Pasteboard
-import MobileCoreServices
+import UniformTypeIdentifiers
 import ImageTransparency
 import ChatInputTextNode
 import TextInputMenu
 import ObjCRuntimeUtils
 import MultilineTextComponent
+import Speak
 
 public final class EmptyInputView: UIView, UIInputViewAudioFeedback {
     public var enableInputClicksWhenVisible: Bool {
@@ -359,9 +364,6 @@ public final class TextFieldComponent: Component {
         public var inputTextView: UITextView {
             return self.textView
         }
-        // MARK: Swiftgram
-        var sgToolbarActionObserver: NSObjectProtocol? = nil
-        
         private var component: TextFieldComponent?
         private weak var state: EmptyComponentState?
         private var isUpdating: Bool = false
@@ -442,20 +444,6 @@ public final class TextFieldComponent: Component {
                 }
             }
             
-            // MARK: Swiftgram
-            self.sgToolbarActionObserver = NotificationCenter.default.addObserver(forName: Notification.Name("sgToolbarAction"), object: nil, queue: .main, using: { [weak self] notification in
-                    guard let self = self else { return }
-                    if let action = notification.userInfo?["action"] as? String {
-                        self.sgToolbarAction(action)
-                    }
-            })
-        }
-        
-        // MARK: Swiftgram
-        deinit {
-            if let sgToolbarActionObserver = self.sgToolbarActionObserver {
-                NotificationCenter.default.removeObserver(sgToolbarActionObserver)
-            }
         }
         
         required init?(coder: NSCoder) {
@@ -529,7 +517,7 @@ public final class TextFieldComponent: Component {
             let pasteboard = UIPasteboard.general
                         
             var attributedString: NSAttributedString?
-            if let data = pasteboard.data(forPasteboardType: kUTTypeRTF as String) {
+            if let data = pasteboard.data(forPasteboardType: UTType.rtf.identifier) {
                 attributedString = chatInputStateStringFromRTF(data, type: NSAttributedString.DocumentType.rtf)
             } else if let data = pasteboard.data(forPasteboardType: "com.apple.flat-rtfd") {
                 attributedString = chatInputStateStringFromRTF(data, type: NSAttributedString.DocumentType.rtfd)
@@ -577,15 +565,15 @@ public final class TextFieldComponent: Component {
                         images.append(image)
                         isPNG = true
                         isMemoji = true
-                    } else if let image = item[kUTTypePNG as String] as? UIImage {
+                    } else if let image = item[UTType.png.identifier] as? UIImage {
                         images.append(image)
                         isPNG = true
                     } else if let image = item["com.apple.uikit.image"] as? UIImage {
                         images.append(image)
                         isPNG = true
-                    } else if let image = item[kUTTypeJPEG as String] as? UIImage {
+                    } else if let image = item[UTType.jpeg.identifier] as? UIImage {
                         images.append(image)
-                    } else if let image = item[kUTTypeGIF as String] as? UIImage {
+                    } else if let image = item[UTType.gif.identifier] as? UIImage {
                         images.append(image)
                     }
                 }
@@ -909,6 +897,34 @@ public final class TextFieldComponent: Component {
                 return true
             }
             return true
+        }
+        
+        private var currentSpeechHolder: SpeechSynthesizerHolder?
+        /// VoiceOver label of the text view for a host that draws its own placeholder (the component's own
+        /// placeholder, when set, labels the field itself).
+        public func setAccessibilityFieldLabel(_ label: String?) {
+            if self.textView.accessibilityLabel != label {
+                self.textView.accessibilityLabel = label
+            }
+        }
+        
+        @objc public func _accessibilitySpeak(_ sender: Any) {
+            let selectionRange = self.inputState.selectionRange
+            let text = self.inputState.inputText.attributedSubstring(from: NSRange(location: selectionRange.startIndex, length: selectionRange.count))
+            if let speechHolder = speakText(text: text.string) {
+                speechHolder.completion = { [weak self, weak speechHolder] in
+                    if let strongSelf = self, strongSelf.currentSpeechHolder == speechHolder {
+                        strongSelf.currentSpeechHolder = nil
+                    }
+                }
+                self.currentSpeechHolder = speechHolder
+            }
+            if #available(iOS 13.0, *) {
+                UIMenuController.shared.hideMenu()
+            } else {
+                UIMenuController.shared.isMenuVisible = false
+                UIMenuController.shared.update()
+            }
         }
         
         public func chatInputTextNodeTargetForAction(action: Selector) -> ChatInputTextNode.TargetForAction? {
@@ -1621,7 +1637,13 @@ public final class TextFieldComponent: Component {
                 if let placeholderView = placeholder.view {
                     if placeholderView.superview == nil {
                         placeholderView.isUserInteractionEnabled = false
+                        // VoiceOver: the field is labelled by its placeholder; the placeholder text is not read again.
+                        placeholderView.isAccessibilityElement = false
+                        placeholderView.accessibilityElementsHidden = true
                         self.textView.insertSubview(placeholderView, at: 0)
+                    }
+                    if self.textView.accessibilityLabel != placeholderValue.string {
+                        self.textView.accessibilityLabel = placeholderValue.string
                     }
                     placeholderTransition.setPosition(view: placeholderView, position: placeholderFrame.center)
                     placeholderView.bounds = CGRect(origin: CGPoint(), size: placeholderFrame.size)
@@ -1917,101 +1939,80 @@ extension TextFieldComponent.InputState {
 
 extension TextFieldComponent.View {
     
-    func sgToolbarAction(_ action: String) {
+    // MARK: Swiftgram
+    public func sgToolbarAction(_ action: SGInputToolbarAction) {
         switch action {
-            case "quote":
-                self.sgSelectLastWordIfIdle()
-                self.toggleAttribute(key: ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .quote, isCollapsed: false))
-            case "spoiler":
-                self.sgSelectLastWordIfIdle()
-                self.toggleAttribute(key: ChatTextInputAttributes.spoiler)
-            case "bold":
-                self.sgSelectLastWordIfIdle()
-                self.toggleAttribute(key: ChatTextInputAttributes.bold)
-            case "italic":
-                self.sgSelectLastWordIfIdle()
-                self.toggleAttribute(key: ChatTextInputAttributes.italic)
-            case "monospace":
-                self.sgSelectLastWordIfIdle()
-                self.toggleAttribute(key: ChatTextInputAttributes.monospace)
-            case "link":
+            case .quote:
+                self.sgToggleToolbarAttribute(key: ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .quote, isCollapsed: false))
+            case .spoiler:
+                self.sgToggleToolbarAttribute(key: ChatTextInputAttributes.spoiler)
+            case .bold:
+                self.sgToggleToolbarAttribute(key: ChatTextInputAttributes.bold)
+            case .italic:
+                self.sgToggleToolbarAttribute(key: ChatTextInputAttributes.italic)
+            case .date:
+                break
+            case .monospace:
+                self.sgToggleToolbarAttribute(key: ChatTextInputAttributes.monospace)
+            case .link:
                 self.sgSelectLastWordIfIdle()
                 self.openLinkEditing()
-            case "strikethrough":
-                self.sgSelectLastWordIfIdle()
-                self.toggleAttribute(key: ChatTextInputAttributes.strikethrough)
-            case "underline":
-                self.sgSelectLastWordIfIdle()
-                self.toggleAttribute(key: ChatTextInputAttributes.underline)
-            case "code":
-                self.sgSelectLastWordIfIdle()
-                self.toggleAttribute(key: ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .code(language: nil), isCollapsed: false))
-            case "newline":
+            case .underline:
+                self.sgToggleToolbarAttribute(key: ChatTextInputAttributes.underline)
+            case .strikethrough:
+                self.sgToggleToolbarAttribute(key: ChatTextInputAttributes.strikethrough)
+            case .code:
+                self.sgToggleToolbarAttribute(key: ChatTextInputAttributes.block, value: ChatTextInputTextQuoteAttribute(kind: .code(language: nil), isCollapsed: false))
+            case .newLine:
                 self.sgSetNewLine()
-            case "clearFormatting":
+            case .clearFormatting:
                 self.updateInputState { current in
                     return current.clearFormattingAttributes()
                 }
-            default:
-                assert(false, "Unhandled action \(action)")
+        }
+    }
+
+    private func sgToggleToolbarAttribute(key: NSAttributedString.Key, value: Any? = nil) {
+        self.updateInputState { current in
+            return Self.sgInputStateSelectingLastWordIfIdle(current).addFormattingAttribute(attribute: key, value: value)
         }
     }
     
     func sgSelectLastWordIfIdle() {
         self.updateInputState { current in
-            // No changes to current selection
-            if !current.selectionRange.isEmpty {
-                return current
-            }
-            
-            let inputText = (current.inputText.mutableCopy() as? NSMutableAttributedString) ?? NSMutableAttributedString()
-            
-            // If text is empty or cursor is at the start, return current state
-            guard inputText.length > 0, current.selectionRange.lowerBound > 0 else {
-                return current
-            }
-            
-            let plainText = inputText.string
-            let nsString = plainText as NSString
-            
-            // Create character set for word boundaries
-            let wordBoundaries = CharacterSet.whitespacesAndNewlines
-            
-            // Start from cursor position instead of end of text
-            var endIndex = current.selectionRange.lowerBound - 1
-            
-            // Find last non-whitespace character before cursor
-            while endIndex >= 0 &&
-                  (nsString.substring(with: NSRange(location: endIndex, length: 1)) as NSString)
-                    .rangeOfCharacter(from: wordBoundaries).location != NSNotFound {
-                endIndex -= 1
-            }
-            
-            // If we only had whitespace before cursor, return current state
-            guard endIndex >= 0 else {
-                return current
-            }
-            
-            // Find start of the current word by looking backwards for whitespace
-            var startIndex = endIndex
-            while startIndex > 0 {
-                let char = nsString.substring(with: NSRange(location: startIndex - 1, length: 1))
-                if (char as NSString).rangeOfCharacter(from: wordBoundaries).location != NSNotFound {
-                    break
-                }
-                startIndex -= 1
-            }
-            
-            // Create range for the word at cursor
-            let wordLength = endIndex - startIndex + 1
-            let wordRange = NSRange(location: startIndex, length: wordLength)
-            
-            // Create new selection range
-            let newSelectionRange = wordRange.location ..< (wordRange.location + wordLength)
-            
-            return TextFieldComponent.InputState(inputText: inputText, selectionRange: newSelectionRange)
+            return Self.sgInputStateSelectingLastWordIfIdle(current)
         }
     }
+
+    private static func sgInputStateSelectingLastWordIfIdle(_ current: TextFieldComponent.InputState) -> TextFieldComponent.InputState {
+        // Keep an existing selection; an empty field or a caret at the start needs no change.
+        let selectionRange = current.selectionRange
+        guard selectionRange.isEmpty, selectionRange.lowerBound > 0 else {
+            return current
+        }
+        // Use UTF-16 offsets to match the editor's selection range; reject an out-of-bounds caret.
+        let text = current.inputText.string as NSString
+        guard selectionRange.lowerBound <= text.length else {
+            return current
+        }
+        // Word boundaries remain whitespace/newlines, not punctuation or linguistic word boundaries.
+        let boundaries = CharacterSet.whitespacesAndNewlines
+        // Start at the caret, skipping whitespace backwards to the previous word's exclusive end.
+        var end = selectionRange.lowerBound
+        while end > 0, (boundaries as NSCharacterSet).characterIsMember(text.character(at: end - 1)) {
+            end -= 1
+        }
+        // Only whitespace before the caret: keep the current state.
+        guard end > 0 else {
+            return current
+        }
+        // Find the preceding boundary; a caret inside a word selects only the portion before it.
+        let boundary = text.rangeOfCharacter(from: boundaries, options: .backwards, range: NSRange(location: 0, length: end))
+        let start = boundary.location == NSNotFound ? 0 : NSMaxRange(boundary)
+        // Reuse the original attributed text; the caller commits selection and formatting together.
+        return TextFieldComponent.InputState(inputText: current.inputText, selectionRange: start ..< end)
+    }
+    //
     
     func sgSetNewLine() {
         self.updateInputState { current in

@@ -930,11 +930,10 @@ final class StoryItemContentComponent: Component {
                 case let .file(file):
                     self.priorityDisposable = component.context.engine.resources.pushPriorityDownload(resourceId: file.resource.id.stringRepresentation)
                     
-                    fetchSignal = fetchedMediaResource(
-                        mediaBox: component.context.account.postbox.mediaBox,
+                    fetchSignal = component.context.engine.resources.fetch(
+                        reference: FileMediaReference.story(peer: peerReference, id: component.item.id, media: file).resourceReference(file.resource),
                         userLocation: .other,
-                        userContentType: .story,
-                        reference: FileMediaReference.story(peer: peerReference, id: component.item.id, media: file).resourceReference(file.resource)
+                        userContentType: .story
                     )
                     |> ignoreValues
                     |> `catch` { _ -> Signal<Never, NoError> in
@@ -1341,7 +1340,7 @@ final class StoryItemContentComponent: Component {
                             foreground: environment.theme.list.itemCheckColors.foregroundColor,
                             pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.7)
                         ),
-                        content: AnyComponentWithIdentity(id: AnyHashable(""), component: AnyComponent(Text(text: component.strings.Story_UnsupportedAction, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor
+                        content: AnyComponentWithIdentity(id: AnyHashable(""), component: AnyComponent(Text(text: component.strings.Story_UnsupportedAction.replacingOccurrences(of: "Telegram", with: "Swiftgram") /* MARK: Swiftgram */, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor
                         ))),
                         isEnabled: true,
                         displaysProgress: false,

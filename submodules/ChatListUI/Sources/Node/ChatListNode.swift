@@ -1,5 +1,7 @@
+// MARK: Swiftgram
 import SGAPIToken
 import SGAPIWebSettings
+//
 import Foundation
 import UIKit
 import Display
@@ -83,7 +85,7 @@ public final class ChatListNodeInteraction {
     }
     
     let activateSearch: () -> Void
-    let openSGAnnouncement: (String, String, Bool, Bool) -> Void
+    let openSGAnnouncement: (String, String, Bool, Bool) -> Void // MARK: Swiftgram
     let peerSelected: (EnginePeer, EnginePeer?, Int64?, ChatListNodeEntryPromoInfo?, Bool) -> Void
     let disabledPeerSelected: (EnginePeer, Int64?, ChatListDisabledPeerReason) -> Void
     let togglePeerSelected: (EnginePeer, Int64?) -> Void
@@ -137,6 +139,9 @@ public final class ChatListNodeInteraction {
     var isSearchMode: Bool = false
     
     var isInlineMode: Bool = false
+    /// The list hosted by the chat side list (`ChatListControllerImpl.isSideList`).
+    var isSideListMode: Bool = false
+    var openSideListAllThreads: (() -> Void)?
     var inlineNavigationLocation: ChatListHighlightedLocation?
     
     let animationCache: AnimationCache
@@ -147,8 +152,7 @@ public final class ChatListNodeInteraction {
         animationCache: AnimationCache,
         animationRenderer: MultiAnimationRenderer,
         activateSearch: @escaping () -> Void,
-        // MARK: Swiftgram
-        openSGAnnouncement: @escaping (String, String, Bool, Bool) -> Void = { _, _, _, _ in },
+        openSGAnnouncement: @escaping (String, String, Bool, Bool) -> Void = { _, _, _, _ in }, // MARK: Swiftgram
         peerSelected: @escaping (EnginePeer, EnginePeer?, Int64?, ChatListNodeEntryPromoInfo?, Bool) -> Void,
         disabledPeerSelected: @escaping (EnginePeer, Int64?, ChatListDisabledPeerReason) -> Void,
         togglePeerSelected: @escaping (EnginePeer, Int64?) -> Void,
@@ -197,7 +201,7 @@ public final class ChatListNodeInteraction {
         openUrl: @escaping (String) -> Void
     ) {
         self.activateSearch = activateSearch
-        self.openSGAnnouncement = openSGAnnouncement
+        self.openSGAnnouncement = openSGAnnouncement // MARK: Swiftgram
         self.peerSelected = peerSelected
         self.disabledPeerSelected = disabledPeerSelected
         self.togglePeerSelected = togglePeerSelected
@@ -502,7 +506,8 @@ private func mappedInsertEntries(context: AccountContext, nodeInteraction: ChatL
                             },
                             requiresPremiumForMessaging: peerEntry.requiresPremiumForMessaging,
                             displayAsTopicList: peerEntry.displayAsTopicList,
-                            tags: chatListItemTags(location: location, accountPeerId: context.account.peerId, isPremium: isPremium, peer: peer.chatMainPeer, isUnread: combinedReadState?.isUnread ?? false, isMuted: isRemovedFromTotalUnreadCount, isContact: isContact, hasUnseenMentions: hasUnseenMentions, chatListFilters: chatListFilters)
+                            tags: chatListItemTags(location: location, accountPeerId: context.account.peerId, isPremium: isPremium, peer: peer.chatMainPeer, isUnread: combinedReadState?.isUnread ?? false, isMuted: isRemovedFromTotalUnreadCount, isContact: isContact, hasUnseenMentions: hasUnseenMentions, chatListFilters: chatListFilters),
+                            isSideListAllThreadsItem: peerEntry.isSideListAllThreadsItem
                         )),
                         editing: editing,
                         hasActiveRevealControls: hasActiveRevealControls,
@@ -647,7 +652,12 @@ private func mappedInsertEntries(context: AccountContext, nodeInteraction: ChatL
                     var isCommunity = false
                     if let peer = chatPeer, case let .channel(channel) = peer, channel.isForumOrMonoForum {
                         isForum = true
-                        if editing {
+                        // A forum can only be selected via one of its topics in pickers that forward
+                        // INTO a chat (isSelecting == false, e.g. forward/share). Pickers that merely
+                        // collect peer ids (isSelecting == true: privacy exceptions, folder include /
+                        // exclude, auto-delete, paid-message fees) need no topic, so the forum itself
+                        // stays selectable there.
+                        if editing && !isSelecting {
                             enabled = false
                         }
                     } else if isIncludedCommunityContainer(chatPeer, filter: filter) {
@@ -658,7 +668,7 @@ private func mappedInsertEntries(context: AccountContext, nodeInteraction: ChatL
                     }
                 
                     var selectable = editing
-                    if isForum || isCommunity {
+                    if (isForum && !isSelecting) || isCommunity {
                         selectable = false
                     }
 
@@ -684,7 +694,7 @@ private func mappedInsertEntries(context: AccountContext, nodeInteraction: ChatL
                                     nodeInteraction.peerSelected(chatPeer, nil, threadId, nil, false)
                                 }
                             }
-                        }, disabledAction: ((isForum || isCommunity) && editing) && !peerEntry.requiresPremiumForMessaging ? nil : { _ in
+                        }, disabledAction: (((isForum && !isSelecting) || isCommunity) && editing) && !peerEntry.requiresPremiumForMessaging ? nil : { _ in
                             if let chatPeer = chatPeer {
                                 nodeInteraction.disabledPeerSelected(chatPeer, threadId, peerEntry.requiresPremiumForMessaging ? .premiumRequired : .generic)
                             }
@@ -869,7 +879,8 @@ private func mappedUpdateEntries(context: AccountContext, nodeInteraction: ChatL
                                 },
                                 requiresPremiumForMessaging: peerEntry.requiresPremiumForMessaging,
                                 displayAsTopicList: peerEntry.displayAsTopicList,
-                                tags: chatListItemTags(location: location, accountPeerId: context.account.peerId, isPremium: isPremium, peer: peer.chatMainPeer, isUnread: combinedReadState?.isUnread ?? false, isMuted: isRemovedFromTotalUnreadCount, isContact: isContact, hasUnseenMentions: hasUnseenMentions, chatListFilters: chatListFilters)
+                                tags: chatListItemTags(location: location, accountPeerId: context.account.peerId, isPremium: isPremium, peer: peer.chatMainPeer, isUnread: combinedReadState?.isUnread ?? false, isMuted: isRemovedFromTotalUnreadCount, isContact: isContact, hasUnseenMentions: hasUnseenMentions, chatListFilters: chatListFilters),
+                                isSideListAllThreadsItem: peerEntry.isSideListAllThreadsItem
                             )),
                             editing: editing,
                             hasActiveRevealControls: hasActiveRevealControls,
@@ -961,20 +972,26 @@ private func mappedUpdateEntries(context: AccountContext, nodeInteraction: ChatL
                         }
                         
                         var isForum = false
+                        var isCommunity = false
                         if let peer = chatPeer, case let .channel(channel) = peer, channel.isForumOrMonoForum {
                             isForum = true
-                            if editing {
+                            // A forum can only be selected via one of its topics in pickers that forward
+                            // INTO a chat (isSelecting == false, e.g. forward/share). Pickers that merely
+                            // collect peer ids (isSelecting == true: privacy exceptions, folder include /
+                            // exclude, auto-delete, paid-message fees) need no topic, so the forum itself
+                            // stays selectable there.
+                            if editing && !isSelecting {
                                 enabled = false
                             }
                         } else if isIncludedCommunityContainer(chatPeer, filter: filter) {
-                            isForum = true
+                            isCommunity = true
                             if editing {
                                 enabled = false
                             }
                         }
                     
                         var selectable = editing
-                        if isForum {
+                        if (isForum && !isSelecting) || isCommunity {
                             selectable = false
                         }
                     
@@ -1000,7 +1017,7 @@ private func mappedUpdateEntries(context: AccountContext, nodeInteraction: ChatL
                                         nodeInteraction.peerSelected(chatPeer, nil, threadId, nil, false)
                                     }
                                 }
-                            }, disabledAction: (isForum && editing) && !peerEntry.requiresPremiumForMessaging ? nil : { _ in
+                            }, disabledAction: (((isForum && !isSelecting) || isCommunity) && editing) && !peerEntry.requiresPremiumForMessaging ? nil : { _ in
                                 if let chatPeer = chatPeer {
                                     nodeInteraction.disabledPeerSelected(chatPeer, threadId, peerEntry.requiresPremiumForMessaging ? .premiumRequired : .generic)
                                 }
@@ -1238,6 +1255,9 @@ public final class ChatListNode: ListViewImpl {
     }
     
     public var peerSelected: ((EnginePeer, Int64?, Bool, Bool, ChatListNodeEntryPromoInfo?) -> Void)?
+    /// The chat side list's "All Messages" row was tapped.
+    public var sideListAllThreadsSelected: (() -> Void)?
+    let isSideList: Bool
     public var disabledPeerSelected: ((EnginePeer, Int64?, ChatListDisabledPeerReason) -> Void)?
     public var additionalCategorySelected: ((Int) -> Void)?
     public var groupSelected: ((EngineChatList.Group) -> Void)?
@@ -1281,7 +1301,7 @@ public final class ChatListNode: ListViewImpl {
         if let chatListView = self.chatListView {
             return chatListView.filteredEntries.compactMap { item -> EnginePeer.Id? in
                 switch item.stableId {
-                case .Header, .Hole:
+                case .Header, .Hole, .SideListAllThreads:
                     return nil
                 case let .PeerId(value):
                     return EnginePeer.Id(value)
@@ -1357,8 +1377,23 @@ public final class ChatListNode: ListViewImpl {
     public var addedVisibleChatsWithPeerIds: (([EnginePeer.Id]) -> Void)?
     
     private let currentRemovingItemId = Atomic<ChatListNodeState.ItemId?>(value: nil)
+    private var currentRemovingItemIdGeneration = 0
     public func setCurrentRemovingItemId(_ itemId: ChatListNodeState.ItemId?) {
-        let _ = self.currentRemovingItemId.swap(itemId)
+        self.currentRemovingItemIdGeneration += 1
+        guard itemId == nil else {
+            let _ = self.currentRemovingItemId.swap(itemId)
+            return
+        }
+        // Callers clear this when their transaction completes, which reaches the main queue at about the same time as
+        // the view showing the change reaches viewProcessingQueue, in either order. Cleared first, the row's removal
+        // or insertion would not animate.
+        let generation = self.currentRemovingItemIdGeneration
+        Queue.mainQueue().after(0.5) { [weak self] in
+            guard let self, self.currentRemovingItemIdGeneration == generation else {
+                return
+            }
+            let _ = self.currentRemovingItemId.swap(nil)
+        }
     }
     
     private var hapticFeedback: HapticFeedback?
@@ -1394,7 +1429,8 @@ public final class ChatListNode: ListViewImpl {
     public var startedScrollingAtUpperBound: Bool = false
     
     // MARK: Swiftgram
-    public var getNavigationController: (()-> NavigationController?)?
+    public var getNavigationController: (() -> NavigationController?)?
+    //
     
     private let autoSetReady: Bool
     
@@ -1402,10 +1438,11 @@ public final class ChatListNode: ListViewImpl {
     
     public var synchronousDrawingWhenNotAnimated: Bool = false
     
-    public init(getNavigationController: (() -> NavigationController?)? = nil, context: AccountContext, location: ChatListControllerLocation, chatListFilter: ChatListFilter? = nil, previewing: Bool, fillPreloadItems: Bool, mode: ChatListNodeMode, isPeerEnabled: ((EnginePeer) -> Bool)? = nil, theme: PresentationTheme, fontSize: PresentationFontSize, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, nameSortOrder: PresentationPersonNameOrder, nameDisplayOrder: PresentationPersonNameOrder, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, disableAnimations: Bool, isInlineMode: Bool, autoSetReady: Bool, isMainTab: Bool?) {
+    public init(context: AccountContext, location: ChatListControllerLocation, chatListFilter: ChatListFilter? = nil, previewing: Bool, fillPreloadItems: Bool, mode: ChatListNodeMode, isPeerEnabled: ((EnginePeer) -> Bool)? = nil, theme: PresentationTheme, fontSize: PresentationFontSize, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, nameSortOrder: PresentationPersonNameOrder, nameDisplayOrder: PresentationPersonNameOrder, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, /* MARK: Swiftgram */ getNavigationController: (() -> NavigationController?)? = nil, /* MARK: Swiftgram */ disableAnimations: Bool, isInlineMode: Bool, isSideList: Bool = false, autoSetReady: Bool, isMainTab: Bool?) {
         self.context = context
-        self.getNavigationController = getNavigationController
+        self.getNavigationController = getNavigationController // MARK: Swiftgram
         self.location = location
+        self.isSideList = isSideList
         self.chatListFilter = chatListFilter
         self.chatListFilterValue.set(.single(chatListFilter))
         self.fillPreloadItems = fillPreloadItems
@@ -1438,6 +1475,7 @@ public final class ChatListNode: ListViewImpl {
         
         self.verticalScrollIndicatorColor = theme.list.scrollIndicatorColor
         self.verticalScrollIndicatorFollowsOverscroll = true
+        self.verticalScrollIndicatorRespectsSideInsets = true
         
         self.keepMinimalScrollHeightWithTopInset = self.scrollHeightTopInset
         
@@ -1445,7 +1483,7 @@ public final class ChatListNode: ListViewImpl {
             if let strongSelf = self, let activateSearch = strongSelf.activateSearch {
                 activateSearch()
             }
-        }, openSGAnnouncement: { [weak self] announcementId, url, needAuth, permanent in
+        }, /* MARK: Swiftgram */ openSGAnnouncement: { [weak self] announcementId, url, needAuth, permanent in
             if let strongSelf = self {
                 if needAuth {
                     let _ = (getSGSettingsURL(context: strongSelf.context, url: url)
@@ -1470,7 +1508,7 @@ public final class ChatListNode: ListViewImpl {
                     }
                 }
             }
-        }, peerSelected: { [weak self] peer, _, threadId, promoInfo, _ in
+        }, /* MARK: Swiftgram */ peerSelected: { [weak self] peer, _, threadId, promoInfo, _ in
             if let strongSelf = self, let peerSelected = strongSelf.peerSelected {
                 peerSelected(peer, threadId, true, true, promoInfo)
             }
@@ -1953,6 +1991,10 @@ public final class ChatListNode: ListViewImpl {
             context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: url, forceExternal: false, presentationData: presentationData, navigationController: self.context.sharedContext.mainWindow?.viewController as? NavigationController, dismissInput: {})
         })
         nodeInteraction.isInlineMode = isInlineMode
+        nodeInteraction.isSideListMode = isSideList
+        nodeInteraction.openSideListAllThreads = { [weak self] in
+            self?.sideListAllThreadsSelected?()
+        }
         
         let viewProcessingQueue = self.viewProcessingQueue
         
@@ -2036,7 +2078,7 @@ public final class ChatListNode: ListViewImpl {
         
         let storageInfo: Signal<Double?, NoError>
         if !"".isEmpty, case .chatList(groupId: .root) = location, chatListFilter == nil {
-            let totalSizeSignal = combineLatest(context.account.postbox.mediaBox.storageBox.totalSize(), context.account.postbox.mediaBox.cacheStorageBox.totalSize())
+            let totalSizeSignal = combineLatest(context.engine.resources.storageTotalSize(), context.engine.resources.cacheStorageTotalSize())
             |> map { a, b -> Int64 in
                 return a + b
             }
@@ -2208,11 +2250,23 @@ public final class ChatListNode: ListViewImpl {
         
         let previousAccountIsPremium = Atomic<Bool?>(value: nil)
         
-        let accountIsPremium = context.engine.data.subscribe(
-            TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)
+        let isSideList = self.isSideList
+        // The chat side list's "All Messages" row stands for the parent: Saved Messages or a channel's direct messages.
+        let sideListParentPeer: Signal<EngineRenderedPeer?, NoError>
+        if isSideList, case let .savedMessagesChats(parentPeerId) = location {
+            // Rendered, so a channel's direct messages carry the channel for the row's avatar.
+            sideListParentPeer = context.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.RenderedPeer(id: parentPeerId))
+        } else {
+            sideListParentPeer = .single(nil)
+        }
+        let accountIsPremium = combineLatest(
+            context.engine.data.subscribe(
+                TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)
+            ),
+            sideListParentPeer
         )
-        |> map { peer -> Bool in
-            return peer?.isPremium ?? false
+        |> map { accountPeer, parentPeer -> ChatListNodeAccountPeerState in
+            return ChatListNodeAccountPeerState(isPremium: accountPeer?.isPremium ?? false, parentPeer: parentPeer)
         }
         |> distinctUntilChanged
         
@@ -2227,14 +2281,19 @@ public final class ChatListNode: ListViewImpl {
             chatListFilters,
             accountIsPremium
         )
-        |> mapToQueue { (hideArchivedFolderByDefault, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
+        |> mapToQueue { (hideArchivedFolderByDefault, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremiumAndPeer: ChatListNodeAccountPeerState) -> Signal<ChatListNodeListViewTransition, NoError> in
             let (update, filter) = updateAndFilter
+            let accountIsPremium = accountIsPremiumAndPeer.isPremium
             
             let previousHideArchivedFolderByDefaultValue = previousHideArchivedFolderByDefault.swap(hideArchivedFolderByDefault)
             
             let innerIsMainTab = location == .chatList(groupId: .root) && chatListFilter == nil
             
-            let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab)
+            var (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab)
+            if isSideList, case .savedMessagesChats = location, let parentPeer = accountIsPremiumAndPeer.parentPeer, let allThreadsEntry = chatListSideListAllThreadsEntry(entries: rawEntries, parentPeer: parentPeer) {
+                rawEntries.append(allThreadsEntry)
+                rawEntries.sort()
+            }
             var isEmpty = true
             var entries = rawEntries.filter { entry in
                 switch entry {
@@ -2699,7 +2758,7 @@ public final class ChatListNode: ListViewImpl {
                 forceAllUpdated = true
             }
             let presentationData = state.presentationData
-            
+
             return preparedChatListNodeViewTransition(from: previousView, to: processedView, reason: reason, previewing: previewing, disableAnimations: disableAnimations, scrollPosition: updatedScrollPosition, searchMode: searchMode, forceAllUpdated: forceAllUpdated)
             |> map({ mappedChatListNodeViewListTransition(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: accountIsPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, presentationData: presentationData, transition: $0) })
             |> runOn(prepareOnMainQueue ? Queue.mainQueue() : viewProcessingQueue)
@@ -3433,7 +3492,12 @@ public final class ChatListNode: ListViewImpl {
                                     continue
                                 }
                                 switch transition.chatListView.filteredEntries[entryCount - 1 - i] {
-                                case .PeerEntry, .GroupReferenceEntry:
+                                case let .PeerEntry(peerEntry):
+                                    // The side list's "All Messages" row sorts above everything without being pinned.
+                                    if peerEntry.isSideListAllThreadsItem {
+                                        continue
+                                    }
+                                case .GroupReferenceEntry:
                                     break
                                 default:
                                     continue
@@ -3629,14 +3693,7 @@ public final class ChatListNode: ListViewImpl {
     }
     
     var isNavigationHidden: Bool {
-        switch self.visibleContentOffset() {
-        case let .known(value) where abs(value) < self.scrollHeightTopInset - 1.0:
-            return false
-        case .none:
-            return false
-        default:
-            return true
-        }
+        return ChatListNavigationOffset.isNavigationHidden(self.visibleContentOffset())
     }
     
     var isNavigationInAFinalState: Bool {
@@ -3660,21 +3717,8 @@ public final class ChatListNode: ListViewImpl {
     }
     
     func adjustScrollOffsetForNavigation(isNavigationHidden: Bool) {
-        if self.isNavigationHidden == isNavigationHidden {
-            return
-        }
-        var scrollToItem: ListViewScrollToItem?
-        switch self.visibleContentOffset() {
-        case let .known(value) where abs(value) < self.scrollHeightTopInset - 1.0:
-            if isNavigationHidden {
-                scrollToItem = ListViewScrollToItem(index: 0, position: .top(-self.scrollHeightTopInset), animated: false, curve: .Default(duration: 0.0), directionHint: .Up)
-            }
-        default:
-            if !isNavigationHidden {
-                scrollToItem = ListViewScrollToItem(index: 0, position: .top(0.0), animated: false, curve: .Default(duration: 0.0), directionHint: .Up)
-            }
-        }
-        if let scrollToItem = scrollToItem {
+        if let offset = ChatListNavigationOffset.offsetMatching(isNavigationHidden: isNavigationHidden, from: self.visibleContentOffset()) {
+            let scrollToItem = ListViewScrollToItem(index: 0, position: .top(-offset), animated: false, curve: .Default(duration: 0.0), directionHint: .Up)
             self.transaction(deleteIndices: [], insertIndicesAndItems: [], updateIndicesAndItems: [], options: [.Synchronous], scrollToItem: scrollToItem, updateSizeAndInsets: nil, stationaryItemRange: nil, updateOpaqueState: nil, completion: { _ in })
         }
     }
@@ -4367,4 +4411,14 @@ func chatListItemTags(location: ChatListControllerLocation, accountPeerId: Engin
         }
     }
     return result
+}
+
+/// The account's premium for the rows, and the chat side list's parent peer for its "All Messages" row.
+private struct ChatListNodeAccountPeerState: Equatable {
+    var isPremium: Bool
+    var parentPeer: EngineRenderedPeer?
+
+    static func ==(lhs: ChatListNodeAccountPeerState, rhs: ChatListNodeAccountPeerState) -> Bool {
+        return lhs.isPremium == rhs.isPremium && (lhs.parentPeer == nil) == (rhs.parentPeer == nil) && lhs.parentPeer?.chatOrMonoforumMainPeer?.id == rhs.parentPeer?.chatOrMonoforumMainPeer?.id
+    }
 }

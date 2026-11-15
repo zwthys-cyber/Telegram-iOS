@@ -123,6 +123,11 @@ private final class GlassButtonView: UIView {
         }
     }
     
+    /// The source for a context menu this button opens: its glass, which morphs into the menu.
+    var menuSourceView: UIView {
+        return self.backgroundView
+    }
+
     // MARK: Swiftgram
     var image: UIImage? {
         didSet {
@@ -136,6 +141,7 @@ private final class GlassButtonView: UIView {
     
     override init(frame: CGRect) {
         self.backgroundView = GlassBackgroundView()
+        self.backgroundView.morphsIntoContextMenu = true
         
         self.iconView = GlassBackgroundView.ContentImageView()
         self.backgroundView.contentView.addSubview(self.iconView)
@@ -338,7 +344,7 @@ public final class ChatMessageSelectionInputPanelNode: ChatInputPanelNode {
     }
     
     @objc private func deleteButtonPressed() {
-        self.interfaceInteraction?.deleteSelectedMessages(self.deleteButton)
+        self.interfaceInteraction?.deleteSelectedMessages(self.deleteButton.menuSourceView)
     }
     
     @objc private func reportButtonPressed() {
@@ -655,7 +661,7 @@ public final class ChatMessageSelectionInputPanelNode: ChatInputPanelNode {
         buttons = [
             self.deleteButton,
             self.reportButton,
-            self.tagButton,
+            tagButton ?? self.tagButton,
             self.shareButton,
             self.cloudButton,
             self.forwardHideNamesButton,

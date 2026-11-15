@@ -1,0 +1,19 @@
+name: BYPlugin iOS loader verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulator:
+    runs-on: xcode-27
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Select Xcode
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')
+          sudo xcode-select -s "/Applications/Xcode_${version}.app/Contents/Developer"
+      - name: Verify plugin bridge under iOS dyld
+        run: bash Plugins/BYPlugin/test-simulator.sh

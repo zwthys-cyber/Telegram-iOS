@@ -24,6 +24,10 @@ public class SGSimpleSettings {
     }
     
     private func migrate() {
+        if !Bundle.main.bundlePath.hasSuffix(".appex"), let defaults = UserDefaults(suiteName: APP_GROUP_IDENTIFIER) {
+            defaults.set(self.sendLargePhotos, forKey: Keys.sendLargePhotos.rawValue)
+            defaults.set(self.outgoingPhotoQuality, forKey: Keys.outgoingPhotoQuality.rawValue)
+        }
         let showRepostToStoryMigrationKey = "migrated_\(Keys.showRepostToStory.rawValue)"
         if let groupUserDefaults = UserDefaults(suiteName: APP_GROUP_IDENTIFIER) {
             if !groupUserDefaults.bool(forKey: showRepostToStoryMigrationKey) {
@@ -167,6 +171,7 @@ public class SGSimpleSettings {
         case duckyAppIconAvailable
         case transcriptionBackend
         case translationBackend
+        case translatorLogsExpiration
         case customAppBadge
         case canUseNY
         case nyStyle
@@ -176,6 +181,9 @@ public class SGSimpleSettings {
         case warnOnStoriesOpen
         case showProfileId
         case sendWithReturnKey
+        case videoControlsInFooter
+        case combinedMediaViewer
+        case hideAccountInNotifications
     }
     
     public enum DownloadSpeedBoostValues: String, CaseIterable {
@@ -267,7 +275,7 @@ public class SGSimpleSettings {
         Keys.storyStealthMode.rawValue: false,
         Keys.canUseStealthMode.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
-        Keys.quickTranslateButton.rawValue: false,
+        Keys.quickTranslateButton.rawValue: BYPlugin.isEnabled(.messageTools),
         Keys.outgoingLanguageTranslation.rawValue: [:],
         Keys.hideReactions.rawValue: false,
         Keys.showRepostToStory.rawValue: true,
@@ -281,7 +289,7 @@ public class SGSimpleSettings {
         Keys.contextShowPin.rawValue: true,
         Keys.contextShowSaveMedia.rawValue: true,
         Keys.contextShowMessageReplies.rawValue: true,
-        Keys.contextShowJson.rawValue: false,
+        Keys.contextShowJson.rawValue: BYPlugin.isEnabled(.messageTools),
         Keys.disableScrollToNextChannel.rawValue: false,
         Keys.disableScrollToNextTopic.rawValue: false,
         Keys.disableChatSwipeOptions.rawValue: false,
@@ -309,7 +317,7 @@ public class SGSimpleSettings {
         Keys.wideChannelPosts.rawValue: false,
         Keys.forceEmojiTab.rawValue: false,
         Keys.hideChannelBottomButton.rawValue: false,
-        Keys.secondsInMessages.rawValue: false,
+        Keys.secondsInMessages.rawValue: BYPlugin.isEnabled(.messageTools),
         Keys.forceSystemSharing.rawValue: false,
         Keys.confirmCalls.rawValue: true,
         Keys.videoPIPSwipeDirection.rawValue: VideoPIPSwipeDirection.up.rawValue,
@@ -320,6 +328,7 @@ public class SGSimpleSettings {
         Keys.duckyAppIconAvailable.rawValue: true,
         Keys.transcriptionBackend.rawValue: TranscriptionBackend.default.rawValue,
         Keys.translationBackend.rawValue: TranslationBackend.default.rawValue,
+        Keys.translatorLogsExpiration.rawValue: 0.0,
         Keys.customAppBadge.rawValue: "",
         Keys.canUseNY.rawValue: false,
         Keys.nyStyle.rawValue: NYStyle.default.rawValue,
@@ -328,7 +337,9 @@ public class SGSimpleSettings {
         Keys.hideStories.rawValue: false,
         Keys.warnOnStoriesOpen.rawValue: false,
         Keys.showProfileId.rawValue: true,
-        Keys.sendWithReturnKey.rawValue: false
+        Keys.sendWithReturnKey.rawValue: false,
+        Keys.videoControlsInFooter.rawValue: false,
+        Keys.combinedMediaViewer.rawValue: false,
     ]
     
     public static let groupDefaultValues: [String: Any] = [
@@ -337,6 +348,7 @@ public class SGSimpleSettings {
         Keys.mentionsAndRepliesNotifications.rawValue: MentionsAndRepliesNotificationsSettings.default.rawValue,
         Keys.status.rawValue: 1,
         Keys.showRepostToStoryV2.rawValue: true,
+        Keys.hideAccountInNotifications.rawValue: false,
     ]
     
     @UserDefault(key: Keys.hidePhoneInSettings.rawValue)
@@ -375,10 +387,22 @@ public class SGSimpleSettings {
     public var localDNSForProxyHost: Bool
     
     @UserDefault(key: Keys.sendLargePhotos.rawValue)
-    public var sendLargePhotos: Bool
+    public var sendLargePhotos: Bool {
+        didSet { UserDefaults(suiteName: APP_GROUP_IDENTIFIER)?.set(self.sendLargePhotos, forKey: Keys.sendLargePhotos.rawValue) }
+    }
     
     @UserDefault(key: Keys.outgoingPhotoQuality.rawValue)
-    public var outgoingPhotoQuality: Int32
+    public var outgoingPhotoQuality: Int32 {
+        didSet { UserDefaults(suiteName: APP_GROUP_IDENTIFIER)?.set(self.outgoingPhotoQuality, forKey: Keys.outgoingPhotoQuality.rawValue) }
+    }
+
+    // Read fresh values across processes; extension-local defaults do not contain the app's preferences.
+    public var sharePhotoSettings: (sendLargePhotos: Bool, quality: Double) {
+        let defaults = UserDefaults(suiteName: APP_GROUP_IDENTIFIER)
+        let large = defaults?.object(forKey: Keys.sendLargePhotos.rawValue) as? Bool ?? false
+        let quality = defaults?.object(forKey: Keys.outgoingPhotoQuality.rawValue) as? NSNumber
+        return (large, Double(min(100, max(0, quality?.intValue ?? 70))) / 100.0)
+    }
 
     @UserDefault(key: Keys.hideStories.rawValue)
     public var hideStories: Bool
@@ -578,6 +602,23 @@ public class SGSimpleSettings {
     @UserDefault(key: Keys.translationBackend.rawValue)
     public var translationBackend: String
 
+    @UserDefault(key: Keys.translatorLogsExpiration.rawValue)
+    private var translatorLogsExpiration: Double
+
+    public var translatorLogsEnabled: Bool {
+        if self.translatorLogsExpiration > Date().timeIntervalSince1970 {
+            return true
+        }
+        if self.translatorLogsExpiration != 0.0 {
+            self.translatorLogsExpiration = 0.0
+        }
+        return false
+    }
+
+    public func setTranslatorLogsEnabled(_ enabled: Bool) {
+        self.translatorLogsExpiration = enabled ? Date().addingTimeInterval(24.0 * 60.0 * 60.0).timeIntervalSince1970 : 0.0
+    }
+
     @UserDefault(key: Keys.customAppBadge.rawValue)
     public var customAppBadge: String
 
@@ -592,6 +633,15 @@ public class SGSimpleSettings {
     
     @UserDefault(key: Keys.tabBarSearchEnabled.rawValue)
     public var tabBarSearchEnabled: Bool
+
+    @UserDefault(key: Keys.videoControlsInFooter.rawValue)
+    public var videoControlsInFooter: Bool
+
+    @UserDefault(key: Keys.combinedMediaViewer.rawValue)
+    public var combinedMediaViewer: Bool
+
+    @UserDefault(key: Keys.hideAccountInNotifications.rawValue, userDefaults: UserDefaults(suiteName: APP_GROUP_IDENTIFIER) ?? .standard)
+    public var hideAccountInNotifications: Bool
 }
 
 extension SGSimpleSettings {
