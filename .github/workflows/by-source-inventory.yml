@@ -15,7 +15,7 @@ jobs:
           persist-credentials: false
       - name: Find ad, filter and chat interaction call sites
         run: |
-          rg -n 'getSponsoredPeers|messageFilterKeywords|openUrl: \{|case \.customText|func.*[Mm]ore|func.*[Cc]ontextMenu' Swiftgram submodules/TelegramCore/Sources submodules/TelegramUI/Sources submodules/TelegramUI/Components/Chat/ChatMessageActionBubbleContentNode | sed -n '1,180p'
+          grep -RnE 'getSponsoredPeers|messageFilterKeywords|openUrl: \{|case \.customText|func.*[Mm]ore|func.*[Cc]ontextMenu' Swiftgram submodules/TelegramCore/Sources submodules/TelegramUI/Sources submodules/TelegramUI/Components/Chat/ChatMessageActionBubbleContentNode | sed -n '1,180p'
       - name: Find inline chat history and per-peer policy seams
         run: |
-          rg -n 'chatHistoryEntriesForView\(|BYPrivacy.effective|byAccountOptions|bySuppressRead|func.*[Oo]penMessage|func.*[Nn]avigation.*Menu|case \.more' submodules/TelegramCore/Sources submodules/TelegramUI/Sources | sed -n '1,200p'
+          grep -RnE 'chatHistoryEntriesForView\(|BYPrivacy.effective|byAccountOptions|bySuppressRead|func.*[Oo]penMessage|func.*[Nn]avigation.*Menu|case \.more' submodules/TelegramCore/Sources submodules/TelegramUI/Sources | sed -n '1,200p'
