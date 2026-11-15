@@ -118,10 +118,10 @@ public func byChatPrivacyListController(context: AccountContext) -> ViewControll
             title: i18n("Settings.BYPlugin.Chat.Add", presentationData.strings.baseLanguageCode),
             selectForumThreads: false
         ))
-        picker.peerSelected = { [weak picker, weak controller] peer, _ in
-            picker?.dismiss()
+        picker.peerSelected = { [weak picker] peer, _ in
+            guard let picker else { return }
             let child = byChatPrivacyController(context: context, peerId: peer.id.toInt64(), title: peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder))
-            (controller?.navigationController as? NavigationController)?.pushViewController(child)
+            picker.replace(with: child)
         }
         navigationController.pushViewController(picker)
     }
