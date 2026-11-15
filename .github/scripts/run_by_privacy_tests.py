@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import sys
+from verify_by_truth_log import verify_truth_log
 
 if os.environ.get("GITHUB_ACTIONS") != "true":
     raise SystemExit("Validation runs exclusively in GitHub Actions.")
@@ -89,13 +90,15 @@ for name, test_filter, environment in phases:
             expected_failure = code != 0 and marker in text
             print(name + " detected:", expected_failure, flush=True)
             code = 0 if expected_failure else 1
-        summary.extend(summaries)
         if "TRUTH_SEEDS" in environment:
-            seeds = re.findall(r"TRUTH seed=(\d+)", text)
-            expected = int(environment["TRUTH_SEEDS"].split("-")[1]) - int(environment["TRUTH_SEEDS"].split("-")[0]) + 1
-            if len(set(seeds)) != expected or not summaries or not any("failing=0" in line for line in summaries):
-                print("ERROR: incomplete or failing truth coverage", flush=True)
+            first, last = map(int, environment["TRUTH_SEEDS"].split("-"))
+            try:
+                summaries = [verify_truth_log(text, first, last, code)]
+                print(summaries[0], flush=True)
+            except ValueError as error:
+                print("ERROR: incomplete or failing truth coverage:", error, flush=True)
                 code = code or 1
+        summary.extend(summaries)
     elif code == 0:
         code = 1
     summary.append(f"{name}: exit={code}")

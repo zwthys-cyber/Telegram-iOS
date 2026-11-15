@@ -21,21 +21,10 @@ jobs:
           run-id: 43723612877
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: build/recorded-tests
-      - name: Inspect original recorded test output
+      - name: Verify parser rejection cases
+        run: python3 .github/scripts/test_by_truth_log.py
+      - name: Verify all recorded large-4 seeds and original XCTest result
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          for path in Path("build/recorded-tests").rglob("*"):
-              if not path.is_file():
-                  continue
-              print("FILE", path.name, "bytes", path.stat().st_size)
-              if path.name.endswith(".test.log"):
-                  text = path.read_text(errors="replace")
-                  seeds = re.findall(r"TRUTH seed=(\d+)", text)
-                  print("UNIQUE_SEEDS", len(set(seeds)), "FIRST_LAST", seeds[:3], seeds[-3:])
-                  for marker in ["TRUTH summary", "1-1000 failing", "failing="]:
-                      offset = text.find(marker)
-                      print("CONTEXT", marker, repr(text[max(0, offset - 120):offset + 2500]) if offset >= 0 else "ABSENT")
-                  print("TAIL", repr(text[-4500:]))
-          PY
+          python3 .github/scripts/verify_by_truth_log.py \
+            build/recorded-tests/large-751-1000.test.log 751 1000 \
+            --build-log build/recorded-tests/large-751-1000.log

@@ -11,6 +11,9 @@ on:
       - 'Plugins/BYPlugin/test*.sh'
       - 'Plugins/BYPlugin/BUILD'
       - '.github/scripts/run_by_privacy_tests.py'
+      - '.github/scripts/verify_by_truth_log.py'
+      - '.github/scripts/test_by_truth_log.py'
+      - '.github/scripts/select_by_privacy_matrix.py'
       - '.github/workflows/by-privacy-integration.yml'
       - 'versions.json'
       - 'MODULE.bazel*'
@@ -22,7 +25,20 @@ concurrency:
   # Verify only the newest source revision; completed suite caches remain reusable.
   cancel-in-progress: true
 jobs:
+  classify:
+    runs-on: xcode-27
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - id: matrix
+        run: python3 .github/scripts/select_by_privacy_matrix.py
   integration:
+    needs: classify
     name: State sync - ${{ matrix.label }}
     runs-on: xcode-27
     timeout-minutes: 350
@@ -30,14 +46,7 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
-        include:
-          - { label: suite, mode: suite, first: 0, last: 0 }
-          - { label: small-1, mode: small, first: 1, last: 2500 }
-          - { label: small-2, mode: small, first: 2501, last: 5000 }
-          - { label: large-1, mode: large, first: 1, last: 250 }
-          - { label: large-2, mode: large, first: 251, last: 500 }
-          - { label: large-3, mode: large, first: 501, last: 750 }
-          - { label: large-4, mode: large, first: 751, last: 1000 }
+        include: ${{ fromJSON(needs.classify.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:
