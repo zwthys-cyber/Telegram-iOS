@@ -25,3 +25,14 @@ func byPrivacyChanges(accountId: Int64) -> Signal<Void, NoError> {
         return ActionDisposable { NotificationCenter.default.removeObserver(observer) }
     }
 }
+
+/// Timed and paid media keep the upstream consumption protocol.
+func bySuppressContentRead(transaction: Transaction, id: MessageId) -> Bool {
+    guard bySuppressRead(transaction: transaction, peerId: id.peerId),
+          let message = transaction.getMessage(id), message.paidContent == nil else {
+        return false
+    }
+    return !message.attributes.contains(where: {
+        $0 is AutoclearTimeoutMessageAttribute || $0 is AutoremoveTimeoutMessageAttribute
+    })
+}

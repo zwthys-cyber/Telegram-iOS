@@ -1,3 +1,4 @@
+import TelegramCore
 import Foundation
 import Display
 import SwiftSignalKit

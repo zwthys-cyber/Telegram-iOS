@@ -55,7 +55,12 @@
     "submodules/TelegramCore/Sources/State/StoredMessageConfirmation.swift",
     "submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkMessageContentAsConsumedInteractively.swift",
     "Swiftgram/SGItemListUI/Sources/SGItemListUI.swift",
-    "Swiftgram/SGSettingsUI/Sources/BYMessageHistoryController.swift"
+    "Swiftgram/SGSettingsUI/Sources/BYMessageHistoryController.swift",
+    "submodules/TelegramCore/Sources/State/ManagedConsumePersonalMessagesActions.swift",
+    "submodules/TelegramCore/Sources/State/ManagedSynchronizeConsumeMessageContentsOperations.swift",
+    "submodules/TelegramCore/Sources/State/ManagedSynchronizeMarkAllUnseenPersonalMessagesOperations.swift",
+    "submodules/TelegramCore/Sources/State/AccountViewTracker.swift",
+    "submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkAllChatsAsRead.swift"
   ],
   "verification": "See GitHub Actions for actual results; device installation is not implied.",
   "plugin_version": "2.0"

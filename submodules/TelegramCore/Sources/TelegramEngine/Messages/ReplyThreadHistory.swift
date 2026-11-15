@@ -358,6 +358,8 @@ private class ReplyThreadHistoryContextImpl {
                 return
             }
 
+            guard !BYPrivacy.effective(strongSelf.account.peerId.toInt64()).hideReadReceipts else { return }
+
             var revalidate = false
 
             var unreadCountValue = strongSelf.unreadCountValue
