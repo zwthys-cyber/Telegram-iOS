@@ -525,7 +525,7 @@ public final class SecretMediaPreviewController: ViewController {
                 }
                 let back = UIBarButtonItem(backButtonAppearanceWithTitle: self.presentationData.strings.Common_Back, target: self, action: #selector(self.donePressed))
                 let save = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(self.bySavePressed))
-                self.navigationItem.leftBarButtonItems = [back, save]
+                self.navigationItem.leftBarButtonItems = [back, save].compactMap { $0 }
             }
             if self.currentNodeMessageId != message.id {
                 self.currentNodeMessageId = message.id
