@@ -3,6 +3,18 @@ on:
   workflow_dispatch:
   push:
     branches: [upgrade/by-plugin-privacy-history]
+    paths:
+      - 'Swiftgram/**'
+      - 'submodules/**'
+      - 'Plugins/BYPlugin/Sources/**'
+      - 'Plugins/BYPlugin/Tests/**'
+      - 'Plugins/BYPlugin/test*.sh'
+      - 'Plugins/BYPlugin/BUILD'
+      - '.github/scripts/run_by_privacy_tests.py'
+      - '.github/workflows/by-privacy-integration.yml'
+      - 'versions.json'
+      - 'MODULE.bazel*'
+      - '.bazelrc'
 permissions:
   contents: read
 concurrency:
