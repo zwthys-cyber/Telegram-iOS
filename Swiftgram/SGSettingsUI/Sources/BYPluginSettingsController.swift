@@ -11,12 +11,12 @@ import SGSimpleSettings
 import SGStrings
 
 private enum BYSection: Int32, SGItemListSection {
-    case status, ghost, history, saving, messages, downloads, interface
+    case status, ghost, history, saving, messages, downloads, interface, ads
 }
 private enum BYToggle: Hashable {
     case localSaving, saveMenu, json, seconds, quickTranslate
     case ghost, online, typing, reads, stories, deleted, edits
-    case toolbar, hidePhone, confirmCalls
+    case toolbar, hidePhone, confirmCalls, markers, sponsored, promotions
 }
 private enum BYSelector: Hashable { case downloadMode, retention }
 private typealias BYEntry = SGItemListUIEntry<BYSection, BYToggle, Int, BYSelector, Int, Int>
@@ -48,6 +48,9 @@ func byPluginSettingsController(context: AccountContext, updated: @escaping () -
                     case .stories: options.hideStoryViews = value
                     case .deleted: options.keepDeleted = value
                     case .edits: options.keepEdits = value
+                    case .markers: options.showDeletedMarkers = value
+                    case .sponsored: options.hideSponsoredMessages = value
+                    case .promotions: options.filterPromotions = value
                     default: break
                     }
                 }
@@ -75,20 +78,26 @@ func byPluginSettingsController(context: AccountContext, updated: @escaping () -
                 })
             }
         },
-        openDisclosureLink: { _ in pushImpl?(byMessageHistoryController(context: context)) }
+        openDisclosureLink: { link in
+            switch link {
+            case 1: pushImpl?(byChatPrivacyListController(context: context))
+            case 2: pushImpl?(byPromotionRulesController(context: context))
+            default: pushImpl?(byMessageHistoryController(context: context))
+            }
+        }
     )
-    let signal = combineLatest(context.sharedContext.presentationData, refresh.get())
-    |> map { presentationData, _ -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    let signal = combineLatest(context.sharedContext.presentationData, refresh.get(), context.engine.messages.byPrivacySettingsChanges())
+    |> map { presentationData, _, _ -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let lang = presentationData.strings.baseLanguageCode
         func tr(_ key: String) -> String { i18n("Settings.BYPlugin." + key, lang) }
         let options = BYPrivacy.saved(accountId)
         let ghostAvailable = BYPlugin.isEnabled(.ghostMode)
         let historyAvailable = BYPlugin.isEnabled(.messageHistory)
-        let status = !BYPlugin.available ? "Missing" : (ghostAvailable && historyAvailable ? "ActiveV2" : "LegacyV2")
-        let capabilities: [(String, BYPlugin.Feature)] = [("Capability.Icons", .icons), ("Capability.Tools", .messageTools), ("Capability.Local", .localFeatures), ("Capability.Downloads", .downloadBoost), ("Capability.Storage", .privateStorage), ("Capability.Login", .loginRestart)]
+        let status = !BYPlugin.available ? "Missing" : (ghostAvailable && historyAvailable && BYPlugin.isEnabled(.chatPrivacy) && BYPlugin.isEnabled(.deletionMarkers) && BYPlugin.isEnabled(.adBlock) ? "ActiveV21" : "LegacyV21")
+        let capabilities: [(String, BYPlugin.Feature)] = [("Capability.Icons", .icons), ("Capability.Tools", .messageTools), ("Capability.Local", .localFeatures), ("Capability.Downloads", .downloadBoost), ("Capability.Storage", .privateStorage), ("Capability.Login", .loginRestart), ("Chat.Title", .chatPrivacy), ("History.Markers", .deletionMarkers), ("Ads.Title", .adBlock)]
         let capabilityText = capabilities.map { tr($0.0) + ": " + tr(BYPlugin.isEnabled($0.1) ? "Available" : "Unavailable") }.joined(separator: "\n")
         let entries: [BYEntry] = [
-            .header(id: 1, section: .status, text: "BYPlugin 2.0", badge: nil),
+            .header(id: 1, section: .status, text: "BYPlugin 2.1", badge: nil),
             .notice(id: 2, section: .status, text: tr("Status." + status)),
             .header(id: 10, section: .ghost, text: tr("Ghost.Title"), badge: nil),
             .toggle(id: 11, section: .ghost, settingName: .ghost, value: options.anyGhostEnabled, text: tr("Ghost.Master"), enabled: ghostAvailable),
@@ -97,12 +106,15 @@ func byPluginSettingsController(context: AccountContext, updated: @escaping () -
             .toggle(id: 14, section: .ghost, settingName: .reads, value: options.hideReadReceipts, text: tr("Ghost.Reads"), enabled: ghostAvailable),
             .toggle(id: 15, section: .ghost, settingName: .stories, value: options.hideStoryViews, text: tr("Ghost.Stories"), enabled: ghostAvailable),
             .notice(id: 16, section: .ghost, text: tr("Ghost.Notice")),
+            .disclosure(id: 17, section: .ghost, link: 1, text: tr("Chat.Title")),
             .header(id: 20, section: .history, text: tr("History.Title"), badge: nil),
             .toggle(id: 21, section: .history, settingName: .deleted, value: options.keepDeleted, text: tr("History.KeepDeleted"), enabled: historyAvailable),
             .toggle(id: 22, section: .history, settingName: .edits, value: options.keepEdits, text: tr("History.KeepEdits"), enabled: historyAvailable),
             .oneFromManySelector(id: 23, section: .history, settingName: .retention, text: tr("History.Retention"), value: "\(options.historyDays) " + tr("History.Days"), enabled: true),
             .disclosure(id: 24, section: .history, link: 0, text: tr("History.Open")),
             .notice(id: 25, section: .history, text: tr("History.Notice")),
+            .toggle(id: 26, section: .history, settingName: .markers, value: options.showDeletedMarkers, text: tr("History.Markers"), enabled: historyAvailable && options.keepDeleted && BYPlugin.isEnabled(.deletionMarkers)),
+            .notice(id: 27, section: .history, text: tr("History.MarkerNotice")),
             .header(id: 30, section: .saving, text: tr("LocalSaving"), badge: nil),
             .toggle(id: 31, section: .saving, settingName: .localSaving, value: SGSimpleSettings.shared.byLocalSaving, text: tr("LocalSaving"), enabled: BYPlugin.isEnabled(.localSaving)),
             .toggle(id: 32, section: .saving, settingName: .saveMenu, value: SGSimpleSettings.shared.contextShowSaveMedia, text: tr("SaveMenu"), enabled: true),
@@ -120,7 +132,12 @@ func byPluginSettingsController(context: AccountContext, updated: @escaping () -
             .toggle(id: 62, section: .interface, settingName: .hidePhone, value: SGSimpleSettings.shared.hidePhoneInSettings, text: tr("Existing.HidePhone"), enabled: true),
             .toggle(id: 63, section: .interface, settingName: .confirmCalls, value: SGSimpleSettings.shared.confirmCalls, text: tr("Existing.ConfirmCalls"), enabled: true),
             .plainNotice(id: 64, section: .interface, text: capabilityText),
-            .notice(id: 65, section: .interface, text: tr("Existing.Notice"))
+            .notice(id: 65, section: .interface, text: tr("Existing.Notice")),
+            .header(id: 70, section: .ads, text: tr("Ads.Title"), badge: nil),
+            .toggle(id: 71, section: .ads, settingName: .sponsored, value: options.hideSponsoredMessages, text: tr("Ads.Sponsored"), enabled: BYPlugin.isEnabled(.adBlock)),
+            .toggle(id: 72, section: .ads, settingName: .promotions, value: options.filterPromotions, text: tr("Ads.Promotions"), enabled: BYPlugin.isEnabled(.adBlock)),
+            .disclosure(id: 73, section: .ads, link: 2, text: tr("Ads.Rules")),
+            .notice(id: 74, section: .ads, text: tr("Ads.Notice"))
         ]
         return (
             ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(tr("Title")), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back)),

@@ -311,3 +311,29 @@
 "Settings.BYPlugin.Capability.Downloads" = "下载增强";
 "Settings.BYPlugin.Capability.Storage" = "签名与存储兼容";
 "Settings.BYPlugin.Capability.Login" = "登录重试入口";
+
+// BYPlugin 2.1 chat privacy, local notices and ad controls
+"Settings.BYPlugin.Status.ActiveV21" = "BYPlugin 2.1 已加载。幽灵模式、本地历史和去广告设置仅作用于当前账号。";
+"Settings.BYPlugin.Status.LegacyV21" = "部分功能不可用，请将 IPA 和 dylib 同时更新至 BYPlugin 2.1。";
+"Settings.BYPlugin.Chat.Title" = "按聊天设置幽灵模式";
+"Settings.BYPlugin.Chat.Menu" = "此聊天的 BYPlugin 设置";
+"Settings.BYPlugin.Chat.Mode" = "已读、输入和动态回执";
+"Settings.BYPlugin.Chat.inherit" = "跟随全局";
+"Settings.BYPlugin.Chat.hidden" = "开启幽灵模式";
+"Settings.BYPlugin.Chat.visible" = "正常发送回执";
+"Settings.BYPlugin.Chat.Add" = "选择聊天";
+"Settings.BYPlugin.Chat.Empty" = "暂无单独设置的聊天，当前均跟随全局设置。";
+"Settings.BYPlugin.Chat.Notice" = "单独控制此聊天（含话题）的已读、输入和动态观看回执；在线状态仍按账号统一控制。不适用于秘密聊天。切回正常后继续阅读可能确认之前的消息；隐藏期间的回执不会排队补发。选“跟随全局”可移除单独设置。";
+"Settings.BYPlugin.History.Markers" = "显示撤回位置提示";
+"Settings.BYPlugin.History.Marker" = "消息已撤回 · 点击查看本地历史";
+"Settings.BYPlugin.History.MarkerNotice" = "仅对已记录的消息，在加载到的聊天记录范围内提示撤回位置，不会恢复云端消息。";
+"Settings.BYPlugin.Ads.Title" = "去广告";
+"Settings.BYPlugin.Ads.Sponsored" = "屏蔽官方赞助广告";
+"Settings.BYPlugin.Ads.Promotions" = "折叠匹配的推广消息";
+"Settings.BYPlugin.Ads.Rules" = "推广过滤规则";
+"Settings.BYPlugin.Ads.Placeholder" = "关键词或链接片段";
+"Settings.BYPlugin.Ads.AddRule" = "添加规则";
+"Settings.BYPlugin.Ads.RulesNotice" = "匹配文字、说明及隐藏链接地址，不区分大小写。每次添加一个关键词或链接片段，最多 100 条，每条最多 128 字符。点击规则可删除。未添加规则时不折叠普通消息。";
+"Settings.BYPlugin.Ads.Empty" = "暂无过滤规则。";
+"Settings.BYPlugin.Ads.Notice" = "屏蔽频道、机器人、视频和搜索中的官方赞助广告。群组／频道的普通推广帖按自定义规则折叠，点击可展开。过滤仅改变本机聊天显示，不处理通知或删除云端消息。付费、阅后即焚及一次性媒体保持现有处理方式。";
+"Settings.BYPlugin.Ads.Folded" = "已折叠推广消息 · 点击展开";

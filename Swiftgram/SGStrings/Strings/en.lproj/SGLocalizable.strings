@@ -348,3 +348,29 @@
 "Settings.BYPlugin.Capability.Downloads" = "Download enhancement";
 "Settings.BYPlugin.Capability.Storage" = "Signing/storage compatibility";
 "Settings.BYPlugin.Capability.Login" = "Login restart entry";
+
+// BYPlugin 2.1 chat privacy, local notices and ad controls
+"Settings.BYPlugin.Status.ActiveV21" = "BYPlugin 2.1 is loaded. Privacy, history and ad settings apply to this account.";
+"Settings.BYPlugin.Status.LegacyV21" = "Some features are unavailable. Update both the IPA and dylib to BYPlugin 2.1.";
+"Settings.BYPlugin.Chat.Title" = "Ghost mode by chat";
+"Settings.BYPlugin.Chat.Menu" = "BYPlugin settings for this chat";
+"Settings.BYPlugin.Chat.Mode" = "Read, typing and story receipts";
+"Settings.BYPlugin.Chat.inherit" = "Follow account settings";
+"Settings.BYPlugin.Chat.hidden" = "Ghost mode on";
+"Settings.BYPlugin.Chat.visible" = "Normal receipts";
+"Settings.BYPlugin.Chat.Add" = "Choose a chat";
+"Settings.BYPlugin.Chat.Empty" = "No chat overrides. Chats currently follow account settings.";
+"Settings.BYPlugin.Chat.Notice" = "Overrides this account's read, typing and story-view settings for the selected chat, including its topics. Online status remains account-wide. Secret chats are excluded. Returning to normal may mark earlier messages read when you continue reading; hidden receipts are not queued for replay. Choose Follow account settings to remove the override.";
+"Settings.BYPlugin.History.Markers" = "Show recalled-message positions";
+"Settings.BYPlugin.History.Marker" = "Recalled message · Tap for local history";
+"Settings.BYPlugin.History.MarkerNotice" = "Markers appear only for locally recorded messages in the loaded chat history. They do not restore cloud messages.";
+"Settings.BYPlugin.Ads.Title" = "Ad removal";
+"Settings.BYPlugin.Ads.Sponsored" = "Hide official sponsored ads";
+"Settings.BYPlugin.Ads.Promotions" = "Fold matching promotional messages";
+"Settings.BYPlugin.Ads.Rules" = "Promotion filter rules";
+"Settings.BYPlugin.Ads.Placeholder" = "Keyword or URL fragment";
+"Settings.BYPlugin.Ads.AddRule" = "Add rule";
+"Settings.BYPlugin.Ads.RulesNotice" = "Match text, captions and hidden link targets without case sensitivity. Add one keyword or URL fragment at a time (up to 100 rules, 128 characters each). Tap a rule to remove it. No rules means no ordinary messages are filtered.";
+"Settings.BYPlugin.Ads.Empty" = "No rules yet.";
+"Settings.BYPlugin.Ads.Notice" = "Official sponsored ads are blocked in channels, bots, videos and search. Ordinary group/channel posts can be folded using your rules and expanded by tapping. Filtering affects this device's chat display, not notifications or cloud messages. Paid, timed and one-time media retain their existing behavior.";
+"Settings.BYPlugin.Ads.Folded" = "Filtered promotion · Tap to expand";

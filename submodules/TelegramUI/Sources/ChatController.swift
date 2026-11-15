@@ -1,4 +1,5 @@
 import SGSimpleSettings
+import SGSettingsUI
 import Foundation
 import UIKit
 import Postbox
@@ -914,6 +915,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 return false
             }
             
+            if self.byOpenLocalNotice(message) { return true }
+
             if let request = walletTonConnectRequestRoute(message: EngineMessage(message), accountPeerId: self.context.account.peerId) {
                 guard WalletConfiguration.with(appConfiguration: self.context.currentAppConfiguration.with { $0 }).isAvailable else {
                     self.present(UndoOverlayController(presentationData: self.presentationData, content: .info(title: nil, text: self.presentationData.strings.Wallet_Unavailable, timeout: nil, customUndoText: nil), action: { _ in return false }), in: .window(.root))
@@ -3485,6 +3488,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             let message = urlData.message
             let progress = urlData.progress
             let forceExternal = urlData.external ?? false
+
+            if url == "byplugin://notice", let message, strongSelf.byOpenLocalNotice(message) {
+                return
+            }
             
             var skipConcealedAlert = false
             if let author = message?.author, author.isVerified {
@@ -11741,5 +11748,18 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     
     public var contentContainerNode: ASDisplayNode {
         return self.chatDisplayNode.contentContainerNode
+    }
+}
+
+private extension ChatControllerImpl {
+    func byOpenLocalNotice(_ message: Message) -> Bool {
+        guard let notice = message.byLocalNotice, message.id.peerId == self.chatLocation.peerId else { return false }
+        switch notice.kind {
+        case .deleted:
+            (self.effectiveNavigationController)?.pushViewController(byMessageHistoryController(context: self.context, recordKey: notice.recordKey))
+        case .promotion:
+            BYPromotionFilter.reveal(accountId: self.context.account.peerId.toInt64(), peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, messageId: message.id.id)
+        }
+        return true
     }
 }

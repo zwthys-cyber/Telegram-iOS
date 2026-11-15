@@ -62,7 +62,11 @@
     "submodules/TelegramCore/Sources/State/AccountViewTracker.swift",
     "submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkAllChatsAsRead.swift",
     "submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift",
-    "submodules/TelegramCore/Sources/TelegramEngine/Peers/AdPeers.swift"
+    "submodules/TelegramCore/Sources/TelegramEngine/Peers/AdPeers.swift",
+    "Swiftgram/SGSettingsUI/Sources/BYChatPrivacyController.swift",
+    "submodules/TelegramUI/Sources/ChatHistoryEntriesForView.swift",
+    "submodules/TelegramUI/Sources/ChatHistoryListNode.swift",
+    "submodules/TelegramUI/Sources/ChatController.swift"
   ],
   "verification": "See GitHub Actions for actual results; device installation is not implied.",
   "plugin_version": "2.1"

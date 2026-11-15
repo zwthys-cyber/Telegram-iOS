@@ -499,6 +499,16 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
     guard let interfaceInteraction = interfaceInteraction, let controllerInteraction = controllerInteraction else {
         return .single(ContextController.Items(content: .list([])))
     }
+    if let message = messages.first, let notice = message.byLocalNotice {
+        let title = i18n("Settings.BYPlugin." + (notice.kind == .deleted ? "History.Marker" : "Ads.Folded"), chatPresentationInterfaceState.strings.baseLanguageCode)
+        let action = ContextMenuActionItem(text: title, icon: { theme in
+            generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Replies"), color: theme.actionSheet.primaryTextColor)
+        }, action: { c, f in
+            let open = { let _ = controllerInteraction.openMessage(message, OpenMessageParams(mode: .default)) }
+            if let c { c.dismiss(completion: open) } else { f(.default); open() }
+        })
+        return .single(ContextController.Items(content: .list([.action(action)])))
+    }
     if let message = messages.first {
         if message.id.namespace < 0 {
             return .single(ContextController.Items(content: .list([])))
@@ -1629,6 +1639,17 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         }
         
         // MARK: Swiftgram
+        if BYPlugin.isEnabled(.chatPrivacy), message.id.peerId.namespace != Namespaces.Peer.SecretChat {
+            actions.append(.action(ContextMenuActionItem(text: i18n("Settings.BYPlugin.Chat.Menu", chatPresentationInterfaceState.strings.baseLanguageCode), icon: { theme in
+                generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Settings"), color: theme.actionSheet.primaryTextColor)
+            }, action: { c, f in
+                let title = message.peers[message.id.peerId].map { EnginePeer($0).compactDisplayTitle } ?? String(message.id.peerId.toInt64())
+                let open = {
+                    controllerInteraction.navigationController()?.pushViewController(byChatPrivacyController(context: context, peerId: message.id.peerId.toInt64(), title: title))
+                }
+                if let c { c.dismiss(completion: open) } else { f(.default); open() }
+            })))
+        }
         if BYPlugin.isEnabled(.messageHistory) {
             actions.append(.action(ContextMenuActionItem(text: i18n("Settings.BYPlugin.History.Title", chatPresentationInterfaceState.strings.baseLanguageCode), icon: { theme in
                 generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Replies"), color: theme.actionSheet.primaryTextColor)

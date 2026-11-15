@@ -291,6 +291,22 @@ final class BYPrivacyHistoryTests: StateSyncTestCase {
         }
     }
 
+    func testMarkerIdentityRoundTripsThroughPostboxIncludingUnsignedMaximum() {
+        let peer = self.seedUserChat(500)
+        let record = BYHistoryRecord(peerId: peer.toInt64(), namespace: Namespaces.Message.Cloud, messageId: 12,
+            chatTitle: "chat", author: "sender", sentAt: self.baseDate,
+            version: BYHistoryVersion(text: "original", media: [], timestamp: Int64(self.baseDate)),
+            threadId: 77, originalStableId: UInt32.max)
+        var ledger = BYHistoryLedger()
+        ledger.records = [record]
+        self.fixture.transaction { transaction -> Void in
+            let key = ValueBoxKey("BYPlugin.messageHistory.v1")
+            transaction.setPreferencesEntry(key: key, value: PreferencesEntry(ledger))
+        }
+        XCTAssertEqual(self.history(), ledger, "Use the real signed-integer Postbox Codable adapter, not just JSON")
+        XCTAssertEqual(self.history().records.first?.originalStableId, UInt32.max)
+    }
+
     func testAdRequestsRecheckPolicyAtSubscriptionAndPreservePayloadWhenOff() {
         let user = self.seedUserChat(500)
         let channel = self.seedChannel(310, pts: 20, storedMessageId: nil)

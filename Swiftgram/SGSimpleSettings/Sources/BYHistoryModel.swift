@@ -27,7 +27,17 @@ public struct BYHistoryRecord: Codable, Equatable {
     public var author: String
     public let sentAt: Int32
     public var threadId: Int64?
-    public var originalStableId: UInt32?
+    // Postbox's Codable adapter supports signed integers only.
+    private var encodedOriginalStableId: Int64?
+    public var originalStableId: UInt32? {
+        get { self.encodedOriginalStableId.flatMap { UInt32(exactly: $0) } }
+        set { self.encodedOriginalStableId = newValue.map(Int64.init) }
+    }
+    private enum CodingKeys: String, CodingKey {
+        case peerId, namespace, messageId, chatTitle, author, sentAt, threadId
+        case encodedOriginalStableId = "originalStableId"
+        case deletedAt, versions, updatedAt
+    }
     public var deletedAt: Int64?
     public var versions: [BYHistoryVersion]
     public var updatedAt: Int64
@@ -41,7 +51,7 @@ public struct BYHistoryRecord: Codable, Equatable {
         self.author = String(author.prefix(512))
         self.sentAt = sentAt
         self.threadId = threadId
-        self.originalStableId = originalStableId
+        self.encodedOriginalStableId = originalStableId.map(Int64.init)
         self.versions = [version]
         self.updatedAt = version.timestamp
     }

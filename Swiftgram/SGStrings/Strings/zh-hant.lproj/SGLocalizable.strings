@@ -311,3 +311,29 @@
 "Settings.BYPlugin.Capability.Downloads" = "下載增強";
 "Settings.BYPlugin.Capability.Storage" = "簽名與儲存相容";
 "Settings.BYPlugin.Capability.Login" = "登入重試入口";
+
+// BYPlugin 2.1 chat privacy, local notices and ad controls
+"Settings.BYPlugin.Status.ActiveV21" = "BYPlugin 2.1 已載入。幽靈模式、本機歷史和去廣告設定僅作用於目前帳號。";
+"Settings.BYPlugin.Status.LegacyV21" = "部分功能無法使用，請將 IPA 和 dylib 同時更新至 BYPlugin 2.1。";
+"Settings.BYPlugin.Chat.Title" = "依聊天設定幽靈模式";
+"Settings.BYPlugin.Chat.Menu" = "此聊天的 BYPlugin 設定";
+"Settings.BYPlugin.Chat.Mode" = "已讀、輸入和動態回執";
+"Settings.BYPlugin.Chat.inherit" = "跟隨全域";
+"Settings.BYPlugin.Chat.hidden" = "開啟幽靈模式";
+"Settings.BYPlugin.Chat.visible" = "正常傳送回執";
+"Settings.BYPlugin.Chat.Add" = "選擇聊天";
+"Settings.BYPlugin.Chat.Empty" = "尚無個別設定的聊天，目前均跟隨全域設定。";
+"Settings.BYPlugin.Chat.Notice" = "個別控制此聊天（含話題）的已讀、輸入和動態觀看回執；線上狀態仍依帳號統一控制。不適用於秘密聊天。切回正常後繼續閱讀可能確認先前的訊息；隱藏期間的回執不會排隊補傳。選「跟隨全域」可移除個別設定。";
+"Settings.BYPlugin.History.Markers" = "顯示收回位置提示";
+"Settings.BYPlugin.History.Marker" = "訊息已收回 · 點選查看本機歷史";
+"Settings.BYPlugin.History.MarkerNotice" = "僅對已記錄的訊息，在已載入的聊天記錄範圍內提示收回位置，不會恢復雲端訊息。";
+"Settings.BYPlugin.Ads.Title" = "去廣告";
+"Settings.BYPlugin.Ads.Sponsored" = "封鎖官方贊助廣告";
+"Settings.BYPlugin.Ads.Promotions" = "摺疊符合規則的推廣訊息";
+"Settings.BYPlugin.Ads.Rules" = "推廣過濾規則";
+"Settings.BYPlugin.Ads.Placeholder" = "關鍵字或連結片段";
+"Settings.BYPlugin.Ads.AddRule" = "新增規則";
+"Settings.BYPlugin.Ads.RulesNotice" = "比對文字、說明及隱藏連結網址，不區分大小寫。每次新增一個關鍵字或連結片段，最多 100 條，每條最多 128 字元。點選規則可刪除。未新增規則時不摺疊一般訊息。";
+"Settings.BYPlugin.Ads.Empty" = "尚無過濾規則。";
+"Settings.BYPlugin.Ads.Notice" = "封鎖頻道、機器人、影片和搜尋中的官方贊助廣告。群組／頻道的一般推廣貼文依自訂規則摺疊，點選可展開。過濾僅改變本機聊天顯示，不處理通知或刪除雲端訊息。付費、閱後即焚及一次性媒體維持現有處理方式。";
+"Settings.BYPlugin.Ads.Folded" = "已摺疊推廣訊息 · 點選展開";
