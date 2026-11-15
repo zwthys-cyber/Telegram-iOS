@@ -53,7 +53,9 @@
     "submodules/TelegramCore/Sources/Utils/BYMessageHistory.swift",
     "submodules/TelegramCore/Sources/State/Sync/StateReplay+Messages.swift",
     "submodules/TelegramCore/Sources/State/StoredMessageConfirmation.swift",
-    "submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkMessageContentAsConsumedInteractively.swift"
+    "submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkMessageContentAsConsumedInteractively.swift",
+    "Swiftgram/SGItemListUI/Sources/SGItemListUI.swift",
+    "Swiftgram/SGSettingsUI/Sources/BYMessageHistoryController.swift"
   ],
   "verification": "See GitHub Actions for actual results; device installation is not implied.",
   "plugin_version": "2.0"

@@ -265,6 +265,9 @@ func applyStoredMessageConfirmation(transaction: Transaction, accountPeerId: Pee
     var refreshed: [StoreMessage] = []
     for message in confirmation.existing {
         if case let .Id(id) = message.id, isUnchanged(id) {
+            if let previous = transaction.getMessage(id) {
+                byArchiveEditedMessage(transaction: transaction, previous: previous, updated: message)
+            }
             refreshed.append(message)
         }
     }

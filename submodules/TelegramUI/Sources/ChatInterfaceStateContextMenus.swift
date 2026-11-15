@@ -1,3 +1,5 @@
+import SGSettingsUI
+import SGStrings
 import SGSimpleSettings // MARK: Swiftgram
 import PeerInfoUI
 import Foundation
@@ -1627,10 +1629,19 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         }
         
         // MARK: Swiftgram
+        if BYPlugin.isEnabled(.messageHistory) {
+            actions.append(.action(ContextMenuActionItem(text: i18n("Settings.BYPlugin.History.Title", chatPresentationInterfaceState.strings.baseLanguageCode), icon: { theme in
+                generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Replies"), color: theme.actionSheet.primaryTextColor)
+            }, action: { c, _ in
+                c?.dismiss(completion: {
+                    controllerInteraction.navigationController()?.pushViewController(byMessageHistoryController(context: context, peerId: message.id.peerId.toInt64(), messageId: message.id.id))
+                })
+            })))
+        }
         let showJsonAction = sgMakeContextMenuAction(.json(controllerInteraction: controllerInteraction, context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)
         if SGSimpleSettings.shared.contextShowJson {
             actions.append(showJsonAction)
-            if BYPlugin.isEnabled(.messageTools) && !isCopyProtected {
+            if BYPlugin.isEnabled(.messageTools) && !isLocalCopyProtected {
                 actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ContextMenuCopy + " ID", icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor)
                 }, action: { _, f in

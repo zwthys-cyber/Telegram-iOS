@@ -50,7 +50,7 @@ public struct BYHistoryLedger: Codable, Equatable {
     public static let maximumBytes = 2 * 1024 * 1024
     public init() {}
 
-    public mutating func record(_ value: BYHistoryRecord, editedTo: BYHistoryVersion?, deleted: Bool, now: Int64, days: Int) {
+    public mutating func record(_ value: BYHistoryRecord, editedTo: BYHistoryVersion?, deleted: Bool, now: Int64, days: Int, pruneImmediately: Bool = true) {
         var record = records.first(where: { $0.key == value.key }) ?? value
         if let previous = value.versions.last, record.versions.last?.sameContent(as: previous) != true {
             record.versions.append(previous)
@@ -65,7 +65,7 @@ public struct BYHistoryLedger: Codable, Equatable {
         record.versions = Array(record.versions.suffix(Self.maximumVersions))
         records.removeAll { $0.key == record.key }
         records.append(record)
-        prune(now: now, days: days)
+        if pruneImmediately { prune(now: now, days: days) }
     }
 
     public mutating func prune(now: Int64, days: Int) {

@@ -31,6 +31,7 @@ func _internal_applyMaxReadIndexInteractively(postbox: Postbox, stateManager: Ac
 /// intent - can say it did nothing rather than claim success.
 func _internal_applyMaxReadMessageIdInteractively(postbox: Postbox, stateManager: AccountStateManager, messageId: MessageId) -> Signal<Bool, NoError> {
     return postbox.transaction { transaction -> Bool in
+        guard !bySuppressRead(transaction: transaction, peerId: messageId.peerId) else { return false }
         guard messageId.peerId.namespace != Namespaces.Peer.SecretChat else {
             return false
         }

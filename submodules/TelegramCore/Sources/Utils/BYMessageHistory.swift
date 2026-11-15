@@ -51,13 +51,16 @@ func byArchiveDeletedMessages(transaction: Transaction, ids: [MessageId]) {
     let now = Int64(Date().timeIntervalSince1970)
     var ledger = transaction.getPreferencesEntry(key: byHistoryKey)?.get(BYHistoryLedger.self) ?? BYHistoryLedger()
     var changed = false
-    for id in ids {
+    for id in ids.suffix(BYHistoryLedger.maximumRecords) {
         if let message = transaction.getMessage(id), let snapshot = byHistorySnapshot(message, transaction: transaction, now: now) {
-            ledger.record(snapshot, editedTo: nil, deleted: true, now: now, days: options.historyDays)
+            ledger.record(snapshot, editedTo: nil, deleted: true, now: now, days: options.historyDays, pruneImmediately: false)
             changed = true
         }
     }
-    if changed { transaction.setPreferencesEntry(key: byHistoryKey, value: PreferencesEntry(ledger)) }
+    if changed {
+        ledger.prune(now: now, days: options.historyDays)
+        transaction.setPreferencesEntry(key: byHistoryKey, value: PreferencesEntry(ledger))
+    }
 }
 
 func byArchiveEditedMessage(transaction: Transaction, previous: Message, updated: StoreMessage) {

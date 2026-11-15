@@ -6,6 +6,7 @@ on:
     branches:
       - upgrade/swiftgram-13.2.1-by-plugin
       - master
+      - upgrade/by-plugin-privacy-history
 permissions:
   contents: read
 concurrency:

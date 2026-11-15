@@ -1112,3 +1112,9 @@ gets a shrunk test before its fix. The comparison with master, and every model r
   `docs/superpowers/specs/2026-10-15-difference-too-long-design.md` (the differenceTooLong rules).
 - `docs/superpowers/plans/`: the stage plans, kept as history.
 - `docs/superpowers/plans/2026-10-14-state-sync-foundation/followups.md`: what each stage parked.
+
+## BYPlugin 2.0 local history adapter (2026-11-15)
+
+Opt-in account settings gate a separate bounded Postbox preference ledger. Replay snapshots stored cloud messages before explicit/global-ID/min-available deletions and before material text/media edits. Stored-message confirmation snapshots before confirmed deletions and newer confirmed edits. Paid, secret, service and timed messages are excluded; no payload is logged. Original deletion, edited-message merging, recent-edit guards, resource cleanup, ordering, pts and retry paths are unchanged. Ghost Mode separately suppresses opted-in outgoing cloud reads; validation and incoming state still run.
+
+Pure loader/account-isolation/history-bound tests run in GitHub Actions. Real Postbox integration and upstream state-sync tests must be reported separately, including truth-session results; a release build alone is insufficient. UI expectations and media/archive scope are in Plugins/BYPlugin/README.md.
