@@ -2,10 +2,11 @@ name: BYPlugin integration and state sync
 on:
   workflow_dispatch:
   push:
-    branches: [upgrade/by-plugin-privacy-history]
+    branches: [upgrade/by-plugin-chat-privacy]
     paths:
-      - 'Swiftgram/**'
-      - 'submodules/**'
+      - 'Swiftgram/SGSimpleSettings/**'
+      - 'submodules/TelegramCore/**'
+      - 'submodules/Postbox/**'
       - 'Plugins/BYPlugin/Sources/**'
       - 'Plugins/BYPlugin/Tests/**'
       - 'Plugins/BYPlugin/test*.sh'

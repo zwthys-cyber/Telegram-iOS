@@ -26,18 +26,22 @@ public struct BYHistoryRecord: Codable, Equatable {
     public var chatTitle: String
     public var author: String
     public let sentAt: Int32
+    public var threadId: Int64?
+    public var originalStableId: UInt32?
     public var deletedAt: Int64?
     public var versions: [BYHistoryVersion]
     public var updatedAt: Int64
 
     public var key: String { "\(peerId):\(namespace):\(messageId)" }
-    public init(peerId: Int64, namespace: Int32, messageId: Int32, chatTitle: String, author: String, sentAt: Int32, version: BYHistoryVersion) {
+    public init(peerId: Int64, namespace: Int32, messageId: Int32, chatTitle: String, author: String, sentAt: Int32, version: BYHistoryVersion, threadId: Int64? = nil, originalStableId: UInt32? = nil) {
         self.peerId = peerId
         self.namespace = namespace
         self.messageId = messageId
         self.chatTitle = String(chatTitle.prefix(512))
         self.author = String(author.prefix(512))
         self.sentAt = sentAt
+        self.threadId = threadId
+        self.originalStableId = originalStableId
         self.versions = [version]
         self.updatedAt = version.timestamp
     }
@@ -62,6 +66,8 @@ public struct BYHistoryLedger: Codable, Equatable {
         record.updatedAt = now
         record.chatTitle = value.chatTitle
         record.author = value.author
+        record.threadId = value.threadId
+        record.originalStableId = value.originalStableId
         record.versions = Array(record.versions.suffix(Self.maximumVersions))
         records.removeAll { $0.key == record.key }
         records.append(record)
@@ -88,6 +94,37 @@ public struct BYHistoryLedger: Codable, Equatable {
             return needle.isEmpty || record.chatTitle.localizedCaseInsensitiveContains(needle)
                 || record.author.localizedCaseInsensitiveContains(needle)
                 || record.versions.contains { $0.text.localizedCaseInsensitiveContains(needle) || $0.media.contains { $0.localizedCaseInsensitiveContains(needle) } }
+        }
+    }
+}
+
+
+public struct BYHistoryPosition: Comparable {
+    public let timestamp: Int32
+    public let messageId: Int32
+    public init(timestamp: Int32, messageId: Int32) {
+        self.timestamp = timestamp
+        self.messageId = messageId
+    }
+    public static func < (lhs: Self, rhs: Self) -> Bool {
+        return lhs.timestamp == rhs.timestamp ? lhs.messageId < rhs.messageId : lhs.timestamp < rhs.timestamp
+    }
+}
+
+public extension BYHistoryLedger {
+    /// Only project archived deletions into the loaded chat window; never fill a database hole.
+    func deletionMarkers(peerId: Int64, namespace: Int32, threadId: Int64?, lower: BYHistoryPosition?, upper: BYHistoryPosition?, existingMessageIds: Set<Int32>, now: Int64, days: Int) -> [BYHistoryRecord] {
+        let cutoff = now - Int64(max(1, min(90, days))) * 86400
+        return self.records.filter { record in
+            guard record.peerId == peerId, record.namespace == namespace, record.deletedAt != nil,
+                  record.updatedAt >= cutoff, !existingMessageIds.contains(record.messageId) else { return false }
+            if let threadId, record.threadId != threadId { return false }
+            let position = BYHistoryPosition(timestamp: record.sentAt, messageId: record.messageId)
+            if let lower, position < lower { return false }
+            if let upper, upper < position { return false }
+            return true
+        }.sorted {
+            BYHistoryPosition(timestamp: $0.sentAt, messageId: $0.messageId) < BYHistoryPosition(timestamp: $1.sentAt, messageId: $1.messageId)
         }
     }
 }

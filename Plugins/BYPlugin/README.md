@@ -99,3 +99,9 @@ Compared on 2026-11-15 against the projects' own descriptions:
 - [Nicegram's Ghost Mode guide](https://nicegram.app/articles/ghost) describes last-seen privacy plus chat preview, including the limits of sending/typing while hidden.
 
 BYPlugin implements independent per-account activity/read/story toggles in the injected main app and a bounded local history viewer. App extensions and system integrations do not automatically inherit these main-app privacy settings. It does not change Telegram's server privacy settings automatically. Sending messages, calls, another logged-in client, and requests already sent can still reveal activity. New privacy/history switches default off; earlier local-saving and interface preferences are retained. History only captures versions this device actually had; missing past versions and media bytes cannot be recovered by this viewer.
+
+## BYPlugin 2.1（开发中）
+
+聊天幽灵模式提供跟随全局／此聊天开启／此聊天关闭，作用于该聊天的输入、已读及对应发布者的动态观看回执；在线状态仍属账号全局。旧账号设置按缺失字段默认值兼容读取。撤回位置提示只投影已保存的本地记录，保留原消息日期及话题，不重新写入聊天数据库。去广告分别处理官方赞助内容与可展开的推广规则过滤；付费内容、消费和销毁语义保持原样。新增能力位为 chatPrivacy=512、deletionMarkers=1024、adBlock=2048，总功能位 4095，ABI 1 不变。
+
+本轮编译与验证尚未完成，以 GitHub Actions 实际结果为准。

@@ -36,6 +36,25 @@ struct HistoryTests {
         let boundedData = try JSONEncoder().encode(ledger)
         precondition(boundedData.count <= BYHistoryLedger.maximumBytes)
         precondition(ledger.records.last?.versions.last?.truncated == true)
-        print("History: persistence, search, namespace isolation, versions, retention and byte budget passed")
+        var scoped = BYHistoryLedger()
+        for (peer, id, thread, stamp) in [(Int64(1), Int32(10), Int64(77), Int32(100)), (1, 11, 77, 101), (1, 12, 78, 102), (2, 11, 77, 101)] {
+            let record = BYHistoryRecord(peerId: peer, namespace: 0, messageId: id, chatTitle: "Chat", author: "Author", sentAt: stamp,
+                version: BYHistoryVersion(text: "old", media: [], timestamp: now), threadId: thread, originalStableId: UInt32(id))
+            scoped.record(record, editedTo: nil, deleted: true, now: now, days: 30)
+        }
+        let selected = scoped.deletionMarkers(peerId: 1, namespace: 0, threadId: 77,
+            lower: BYHistoryPosition(timestamp: 101, messageId: 11), upper: nil, existingMessageIds: [], now: now, days: 30)
+        precondition(selected.map(\.messageId) == [11])
+        precondition(selected.first?.originalStableId == 11)
+        precondition(scoped.deletionMarkers(peerId: 1, namespace: 0, threadId: 77, lower: nil, upper: nil, existingMessageIds: [10, 11], now: now, days: 30).isEmpty)
+        precondition(scoped.deletionMarkers(peerId: 1, namespace: 0, threadId: nil, lower: nil, upper: BYHistoryPosition(timestamp: 101, messageId: 10), existingMessageIds: [], now: now, days: 30).map(\.messageId) == [10])
+        precondition(scoped.deletionMarkers(peerId: 1, namespace: 0, threadId: nil, lower: nil, upper: nil, existingMessageIds: [], now: now + 31 * 86400, days: 30).isEmpty)
+        // Old persisted records have no thread/stable-id fields and remain readable.
+        var object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(selected[0])) as! [String: Any]
+        object.removeValue(forKey: "threadId")
+        object.removeValue(forKey: "originalStableId")
+        let legacyRecord = try JSONDecoder().decode(BYHistoryRecord.self, from: JSONSerialization.data(withJSONObject: object))
+        precondition(legacyRecord.messageId == 11 && legacyRecord.threadId == nil && legacyRecord.originalStableId == nil)
+        print("History: persistence, search, namespace isolation, versions, retention, byte budget and deletion-marker windows passed")
     }
 }

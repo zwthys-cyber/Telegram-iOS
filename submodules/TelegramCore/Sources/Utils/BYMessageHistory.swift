@@ -42,7 +42,8 @@ private func byHistorySnapshot(_ message: Message, transaction: Transaction, now
     return BYHistoryRecord(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, messageId: message.id.id,
         chatTitle: byHistoryName(transaction.getPeer(message.id.peerId)),
         author: byHistoryName(message.author), sentAt: message.timestamp,
-        version: byHistoryVersion(text: message.text, media: message.media, now: now))
+        version: byHistoryVersion(text: message.text, media: message.media, now: now),
+        threadId: message.threadId, originalStableId: message.stableId)
 }
 
 func byArchiveDeletedMessages(transaction: Transaction, ids: [MessageId]) {
@@ -101,5 +102,31 @@ public extension TelegramEngine.Messages {
                 transaction.setPreferencesEntry(key: byHistoryKey, value: nil)
             }
         }
+    }
+}
+
+
+/// Presentation-only notice attached to synthetic chat rows. Never written to Postbox.
+public final class BYLocalMessageNoticeAttribute: MessageAttribute {
+    public enum Kind: Int32 { case deleted = 0, promotion = 1 }
+    public let kind: Kind
+    public let recordKey: String
+    public init(kind: Kind, recordKey: String = "") {
+        self.kind = kind
+        self.recordKey = recordKey
+    }
+    public init(decoder: PostboxDecoder) {
+        self.kind = Kind(rawValue: decoder.decodeInt32ForKey("k", orElse: 0)) ?? .deleted
+        self.recordKey = decoder.decodeStringForKey("r", orElse: "")
+    }
+    public func encode(_ encoder: PostboxEncoder) {
+        encoder.encodeInt32(self.kind.rawValue, forKey: "k")
+        encoder.encodeString(self.recordKey, forKey: "r")
+    }
+}
+
+public extension Message {
+    var byLocalNotice: BYLocalMessageNoticeAttribute? {
+        return self.attributes.first(where: { $0 is BYLocalMessageNoticeAttribute }) as? BYLocalMessageNoticeAttribute
     }
 }

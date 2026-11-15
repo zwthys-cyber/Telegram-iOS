@@ -3,7 +3,7 @@ on:
   workflow_call:
   workflow_dispatch:
   pull_request:
-    branches: [upgrade/swiftgram-13.2.1-by-plugin]
+    branches: [master, upgrade/swiftgram-13.2.1-by-plugin]
     paths-ignore:
       - '**/*.md'
       - '.github/workflows/by-cancel-stale-build.yml'
@@ -54,7 +54,7 @@ jobs:
           import json
           from pathlib import Path
           metadata = json.loads(Path("build/plugin/plugin.json").read_text())
-          assert metadata["feature_flags"] == 511, "Release dylib is missing BYPlugin 2.0 features"
+          assert metadata["feature_flags"] == 4095, "Release dylib is missing BYPlugin 2.0 features"
           assert metadata["host_abi"] == 1
           print("Packaged BYPlugin 2.0 feature mask verified:", metadata["feature_flags"])
           PY

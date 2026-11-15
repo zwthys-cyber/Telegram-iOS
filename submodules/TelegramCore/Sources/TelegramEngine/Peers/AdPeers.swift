@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings
 import Postbox
 import SwiftSignalKit
 internal import TelegramApi
@@ -39,16 +40,14 @@ public class AdPeer: Equatable {
 }
 
 func _internal_searchAdPeers(account: Account, query: String) -> Signal<[AdPeer], NoError> {
-    return account.network.request(Api.functions.contacts.getSponsoredPeers(q: query))
-    |> map(Optional.init)
-    |> `catch` { _ in
-        return .single(nil)
-    }
+    guard !BYPrivacy.effective(account.peerId.toInt64()).hideSponsoredMessages else { return .single([]) }
+    return byRequestSponsoredPeers(accountPeerId: account.peerId, network: account.network, query: query)
     |> mapToSignal { result in
         guard let result else {
             return .single([])
         }
         return account.postbox.transaction { transaction -> [AdPeer] in
+            guard !BYPrivacy.effective(account.peerId.toInt64()).hideSponsoredMessages else { return [] }
             switch result {
             case let .sponsoredPeers(sponsoredPeersData):
                 let (peers, chats, users) = (sponsoredPeersData.peers, sponsoredPeersData.chats, sponsoredPeersData.users)
@@ -94,5 +93,20 @@ func _internal_searchAdPeers(account: Account, query: String) -> Signal<[AdPeer]
                 return []
             }
         }
+    }
+}
+
+
+func byRequestSponsoredPeers(accountPeerId: PeerId, network: Network, query: String) -> Signal<Api.contacts.SponsoredPeers?, NoError> {
+    return Signal { subscriber in
+        if BYPrivacy.effective(accountPeerId.toInt64()).hideSponsoredMessages {
+            subscriber.putNext(nil)
+            subscriber.putCompletion()
+            return EmptyDisposable
+        }
+        return (network.request(Api.functions.contacts.getSponsoredPeers(q: query))
+        |> map(Optional.init)
+        |> `catch` { _ -> Signal<Api.contacts.SponsoredPeers?, NoError> in .single(nil) })
+        .start(next: { subscriber.putNext($0) }, completed: { subscriber.putCompletion() })
     }
 }
