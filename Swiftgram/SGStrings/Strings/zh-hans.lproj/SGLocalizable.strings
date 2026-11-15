@@ -272,7 +272,7 @@
 "Settings.BYPlugin.Status.ActiveV2" = "BYPlugin 2.0 已加载。幽灵模式与历史设置仅作用于当前账号，原有 Swiftgram 设置继续共用。";
 "Settings.BYPlugin.Status.LegacyV2" = "已加载旧版或功能受限的插件。请同时更新 IPA 和 dylib，以启用幽灵模式和本地历史。";
 "Settings.BYPlugin.Ghost.Title" = "幽灵模式";
-"Settings.BYPlugin.Ghost.Master" = "幽灵模式：全部开启／关闭";
+"Settings.BYPlugin.Ghost.Master" = "全局幽灵模式";
 "Settings.BYPlugin.Ghost.Online" = "隐藏在线状态";
 "Settings.BYPlugin.Ghost.Typing" = "隐藏输入、录音和上传状态";
 "Settings.BYPlugin.Ghost.Reads" = "不发送云端聊天已读回执";

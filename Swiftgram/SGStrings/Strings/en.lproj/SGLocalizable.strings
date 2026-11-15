@@ -309,7 +309,7 @@
 "Settings.BYPlugin.Status.ActiveV2" = "BYPlugin 2.0 is loaded. Privacy and history settings apply to the current account; existing Swiftgram settings stay shared.";
 "Settings.BYPlugin.Status.LegacyV2" = "An older or limited plugin is loaded. Update both IPA and dylib for privacy and history features.";
 "Settings.BYPlugin.Ghost.Title" = "Ghost Mode";
-"Settings.BYPlugin.Ghost.Master" = "Ghost Mode: enable all / disable all";
+"Settings.BYPlugin.Ghost.Master" = "Account-wide ghost mode";
 "Settings.BYPlugin.Ghost.Online" = "Hide online presence";
 "Settings.BYPlugin.Ghost.Typing" = "Hide typing and upload indicators";
 "Settings.BYPlugin.Ghost.Reads" = "Do not send cloud-chat read receipts";

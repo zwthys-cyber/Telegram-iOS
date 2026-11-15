@@ -272,7 +272,7 @@
 "Settings.BYPlugin.Status.ActiveV2" = "BYPlugin 2.0 已載入。幽靈模式與歷史設定僅作用於目前帳號，原有 Swiftgram 設定繼續共用。";
 "Settings.BYPlugin.Status.LegacyV2" = "已載入舊版或功能受限的外掛。請同時更新 IPA 和 dylib，以啟用幽靈模式和本機歷史。";
 "Settings.BYPlugin.Ghost.Title" = "幽靈模式";
-"Settings.BYPlugin.Ghost.Master" = "幽靈模式：全部開啟／關閉";
+"Settings.BYPlugin.Ghost.Master" = "全域幽靈模式";
 "Settings.BYPlugin.Ghost.Online" = "隱藏上線狀態";
 "Settings.BYPlugin.Ghost.Typing" = "隱藏輸入、錄音和上傳狀態";
 "Settings.BYPlugin.Ghost.Reads" = "不傳送雲端聊天已讀回執";

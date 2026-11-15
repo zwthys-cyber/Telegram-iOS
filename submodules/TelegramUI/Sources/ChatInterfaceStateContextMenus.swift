@@ -1644,7 +1644,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Settings"), color: theme.actionSheet.primaryTextColor)
             }, action: { c, f in
                 let title = message.peers[message.id.peerId].map { EnginePeer($0).compactDisplayTitle } ?? String(message.id.peerId.toInt64())
-                let open = {
+                let open: () -> Void = {
                     controllerInteraction.navigationController()?.pushViewController(byChatPrivacyController(context: context, peerId: message.id.peerId.toInt64(), title: title))
                 }
                 if let c { c.dismiss(completion: open) } else { f(.default); open() }
