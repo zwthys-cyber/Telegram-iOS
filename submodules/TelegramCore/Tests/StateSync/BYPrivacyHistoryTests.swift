@@ -163,4 +163,52 @@ final class BYPrivacyHistoryTests: StateSyncTestCase {
         XCTAssertFalse(self.server.requestNames.contains("messages.readHistory"))
     }
 
+    func testLiveLocationReceiptsAreSuppressedForUserAndChannelWithoutReplay() {
+        let user = self.seedUserChat(500)
+        let channel = self.seedChannel(310, pts: 20, storedMessageId: 12)
+        self.fixture.seedAccount(state: self.state(pts: 100))
+        self.fixture.storeMessage(peerId: user, id: 12, timestamp: self.baseDate, authorId: user, text: "location")
+        self.server.always("messages.readMessageContents") { _ in .result(Api.messages.AffectedMessages.affectedMessages(.init(pts: 100, ptsCount: 0))) }
+        self.server.always("channels.readMessageContents") { _ in .result(Api.Bool.boolTrue) }
+        BYPrivacy.update(self.accountId) { $0.hideReadReceipts = true }
+        for peer in [user, channel] {
+            self.completeLiveLocationRead(peer: peer, ids: [12])
+        }
+        XCTAssertFalse(self.server.requestNames.contains("messages.readMessageContents"))
+        XCTAssertFalse(self.server.requestNames.contains("channels.readMessageContents"))
+
+        BYPrivacy.update(self.accountId) { $0.hideReadReceipts = false }
+        XCTAssertTrue(self.server.requests.isEmpty, "Switching off must not replay suppressed receipts")
+        for peer in [user, channel] {
+            self.completeLiveLocationRead(peer: peer, ids: [12])
+        }
+        XCTAssertEqual(self.server.requestNames.filter { $0 == "messages.readMessageContents" }.count, 1)
+        XCTAssertEqual(self.server.requestNames.filter { $0 == "channels.readMessageContents" }.count, 1)
+    }
+
+    func testLiveLocationReceiptFilteringPreservesPaidConsumption() {
+        let peer = self.seedUserChat(500)
+        self.fixture.seedAccount(state: self.state(pts: 100))
+        self.fixture.storeMessage(peerId: peer, id: 12, timestamp: self.baseDate, authorId: peer, text: "ordinary")
+        self.fixture.storeMessage(peerId: peer, id: 13, timestamp: self.baseDate, authorId: peer, text: "paid",
+            media: [TelegramMediaPaidContent(amount: 10, extendedMedia: [])])
+        self.server.on("messages.readMessageContents", .result(Api.messages.AffectedMessages.affectedMessages(.init(pts: 100, ptsCount: 0))))
+        BYPrivacy.update(self.accountId) { $0.hideReadReceipts = true }
+        self.completeLiveLocationRead(peer: peer, ids: [12, 13])
+        let requests = self.server.requests.filter { $0.name == "messages.readMessageContents" }
+        XCTAssertEqual(requests.count, 1)
+        XCTAssertEqual(requests.first?.payload, Api.functions.messages.readMessageContents(id: [13]).1.makeData())
+    }
+
+    private func completeLiveLocationRead(peer: PeerId, ids: [Int32]) {
+        guard let request = self.fixture.transaction({ transaction in
+            synchronizeSeenLiveLocations(transaction: transaction, network: self.network, peerId: peer,
+                messageIds: ids.map { self.messageId(peer, $0) })
+        }) else { return }
+        let done = self.expectation(description: "live location receipt completes")
+        let disposable = request.start(completed: { done.fulfill() })
+        self.wait(for: [done], timeout: 10)
+        disposable.dispose()
+    }
+
 }
