@@ -213,6 +213,7 @@ func chatHistoryEntriesForView(
     }
     
     var count = 0
+    var byHasFoldedPromotions = false
     loop: for entry in view.entries {
         var message = entry.message.withAppliedEphemeralReplacementMessage()
         var isRead = entry.isRead
@@ -264,6 +265,7 @@ func chatHistoryEntriesForView(
                 return nil
             }
             if BYPromotionFilter.matches(text: message.text, links: links, keywords: byOptions.promotionKeywords) {
+                byHasFoldedPromotions = true
                 entries.append(byNoticeEntry(byNotice(id: message.id, stableId: message.stableId, timestamp: message.timestamp, threadId: message.threadId, kind: .promotion)))
                 continue loop
             }
@@ -407,6 +409,10 @@ func chatHistoryEntriesForView(
         }
     }
     
+    // An album may merge around a folded member. Order by the final group index
+    // before unread separators and thread headers are inserted.
+    if byHasFoldedPromotions { entries.sort() }
+
     if !groupMessages && reverseGroupedMessages {
         var flatEntries: [ChatHistoryEntry] = []
         
