@@ -1,0 +1,23 @@
+name: Retire superseded BYPlugin build
+on:
+  push:
+    branches: [upgrade/by-plugin-privacy-history]
+    paths: [.github/workflows/by-cancel-stale-build.yml]
+permissions:
+  actions: write
+  contents: read
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Cancel only the superseded pre-final source build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          status=$(gh api "repos/$BUILD_REPOSITORY/actions/runs/43715796249" --jq '.status')
+          if [ "$status" != completed ]; then
+            gh api --method POST "repos/$BUILD_REPOSITORY/actions/runs/43715796249/cancel"
+          fi
