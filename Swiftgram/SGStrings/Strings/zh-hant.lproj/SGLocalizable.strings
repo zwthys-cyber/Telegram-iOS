@@ -349,3 +349,4 @@
 "Settings.BYPlugin.History.MediaUsage" = "本機媒體用量";
 "Settings.BYPlugin.Status.ActiveV22" = "BYPlugin 2.2 已啟用";
 "Settings.BYPlugin.Status.LegacyV22" = "偵測到舊版外掛；注入 BYPlugin 2.2 後可啟用媒體保留。";
+"Settings.BYPlugin.History.SaveExport" = "儲存 / 匯出";

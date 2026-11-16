@@ -386,3 +386,4 @@
 "Settings.BYPlugin.History.MediaUsage" = "Local media storage";
 "Settings.BYPlugin.Status.ActiveV22" = "BYPlugin 2.2 active";
 "Settings.BYPlugin.Status.LegacyV22" = "Older plugin detected; inject BYPlugin 2.2 to enable media retention.";
+"Settings.BYPlugin.History.SaveExport" = "Save / Export";

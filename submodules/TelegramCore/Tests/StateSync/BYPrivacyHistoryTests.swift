@@ -401,6 +401,15 @@ final class BYPrivacyHistoryTests: StateSyncTestCase {
             XCTAssertEqual(try Data(contentsOf: url), bytes)
             XCTAssertNotNil(attachment.mediaData)
             XCTAssertNotNil(record.authorData)
+            let projected = try XCTUnwrap(byMakeRetainedHistoryMessage(mediaBox: self.fixture.postbox.mediaBox, record: record, stableId: 42, chatPeer: nil, noticeText: "local", missingMediaText: "missing"))
+            XCTAssertEqual(projected.id.id, record.messageId)
+            XCTAssertEqual(projected.timestamp, record.sentAt)
+            XCTAssertEqual(projected.byLocalNotice?.kind, .retained)
+            XCTAssertFalse(projected.media.isEmpty)
+            XCTAssertNil(self.fixture.message(self.messageId(peer, record.messageId)))
+            var editedOnly = record
+            editedOnly.deletedAt = nil
+            XCTAssertNil(byMakeRetainedHistoryMessage(mediaBox: self.fixture.postbox.mediaBox, record: editedOnly, stableId: 42, chatPeer: nil, noticeText: "local", missingMediaText: "missing"))
         }
         for resource in resources { XCTAssertNil(self.fixture.postbox.mediaBox.completedResourcePath(resource)) }
     }

@@ -5,7 +5,8 @@ import SGSimpleSettings
 /// Reconstructs a presentation-only message backed exclusively by archived local files.
     /// The server message remains deleted/expired in Postbox.
 func byMakeRetainedHistoryMessage(mediaBox: MediaBox, record: BYHistoryRecord, stableId: UInt32, chatPeer: Peer?, noticeText: String, missingMediaText: String) -> Message? {
-        guard record.retainedTimed == true, let version = record.versions.last else { return nil }
+        guard let version = record.versions.last,
+              record.retainedTimed == true || (record.deletedAt != nil && (version.attachments?.contains(where: { $0.localId != nil }) ?? false)) else { return nil }
         let directory = URL(fileURLWithPath: mediaBox.basePath, isDirectory: true).deletingLastPathComponent().appendingPathComponent("by-media-history", isDirectory: true).path
         var media: [Media] = []
         var hasher = Hasher()

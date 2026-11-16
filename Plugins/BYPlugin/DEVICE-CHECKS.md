@@ -17,3 +17,5 @@ Use the matching 2.2 IPA and dylib, injected during signing. Settings → BYPlug
 5. Check an older metadata-only record: missing media must be reported accurately. Test a second account to confirm the first account's history is not shown.
 
 If recording UI transitions, follow root AGENTS.md: capture opening/closing and scrolling, then evaluate labelled frames against the expectations above. A successful compile is not a visual verification.
+
+Follow-up: recalled archived media should render at its original chat position while deletion markers and media history are enabled. The preview has a persistent Save / Export button above the bottom safe area. Check Save Image/Video and Save to Files, cancellation, denied photo access, landscape and iPad popovers. Existing metadata-only records remain notices; no missing bytes are fabricated.
