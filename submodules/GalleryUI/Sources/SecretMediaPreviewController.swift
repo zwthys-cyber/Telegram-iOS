@@ -157,6 +157,7 @@ public final class SecretMediaPreviewController: ViewController {
     
     private let disposable = MetaDisposable()
     private let markMessageAsConsumedDisposable = MetaDisposable()
+    private let byRetainTimedDisposable = MetaDisposable()
     
     private var controllerNode: SecretMediaPreviewControllerNode {
         return self.displayNode as! SecretMediaPreviewControllerNode
@@ -229,6 +230,7 @@ public final class SecretMediaPreviewController: ViewController {
     deinit {
         self.disposable.dispose()
         self.markMessageAsConsumedDisposable.dispose()
+        self.byRetainTimedDisposable.dispose()
         if let hiddenMediaManagerIndex = self.hiddenMediaManagerIndex {
             self.context.sharedContext.mediaManager.galleryHiddenMediaManager.removeSource(hiddenMediaManagerIndex)
         }
@@ -529,6 +531,7 @@ public final class SecretMediaPreviewController: ViewController {
             }
             if self.currentNodeMessageId != message.id {
                 self.currentNodeMessageId = message.id
+                self.byRetainTimedDisposable.set(self.context.engine.messages.byObserveTimedMessageMedia(message: EngineMessage(message)).start())
                 var tempFilePath: String?
                 var duration: Double = 0.0
                 for media in message.media {

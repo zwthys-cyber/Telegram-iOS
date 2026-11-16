@@ -1387,6 +1387,16 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 return
             }
             
+            if BYPrivacy.effective(self.context.account.peerId.toInt64()).hideSponsoredMessages || messages.isEmpty {
+                self.pendingDynamicAdMessages = []
+                self.pendingDynamicAdMessageInterval = nil
+                self.remainingDynamicAdMessageInterval = nil
+                self.remainingDynamicAdMessageDistance = nil
+                self.preloadAdPeerName = nil
+                self.preloadAdPeerDisposable.set(nil)
+                self.allAdMessages = (nil, [], self.allAdMessages.version + 1)
+                return
+            }
             if let interPostInterval = interPostInterval {
                 self.pendingDynamicAdMessages = messages
                 self.pendingDynamicAdMessageInterval = Int(interPostInterval)
@@ -1878,7 +1888,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             self.currentlyPlayingMessageIdPromise.get(),
             self.scrollToMessageIdPromise.get(),
             self.chatHasBotsPromise.get(),
-            self.allAdMessagesPromise.get()
+            self.allAdMessagesPromise.get(),
+            combineLatest(context.engine.messages.byMessageHistory(), context.engine.messages.byPrivacySettingsChanges())
         )
         
         let contentSettings = self.context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ContentSettings())
@@ -1993,7 +2004,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             contentSettings |> debug_measureTimeToFirstEvent(label: "chatHistoryNode_contentSettings")
         ) |> debug_measureTimeToFirstEvent(label: "chatHistoryNode_firstChatHistoryTransition")).startStrict(next: { [weak self] sharedData, /* MARK: Swiftgram */ update, chatPresentationData, selectedMessages, updatingMedia, networkType, preferredStoryHighQuality, animatedEmojiAndGiftStickers, additionalAnimatedEmojiStickers, customChannelDiscussionReadState, customThreadOutgoingReadState, availableReactions, availableMessageEffects, savedMessageTags, defaultReaction, accountPeer, accountCountry, suggestAudioTranscription, promises, topicAuthorId, translationState, maxReadStoryId, recommendedChannels, audioTranscriptionTrial, chatThemes, deviceContactsNumbers, contentSettings in
             let (animatedEmojiStickers, premiumGiftStickers, tonGiftStickers) = animatedEmojiAndGiftStickers
-            let (historyAppearsCleared, pendingUnpinnedAllMessages, pendingRemovedMessages, currentlyPlayingMessageIdAndType, scrollToMessageId, chatHasBots, allAdMessages) = promises
+            let (historyAppearsCleared, pendingUnpinnedAllMessages, pendingRemovedMessages, currentlyPlayingMessageIdAndType, scrollToMessageId, chatHasBots, allAdMessages, byHistoryAndSettings) = promises
             
             if measure_isFirstTime {
                 measure_isFirstTime = false
@@ -2312,7 +2323,9 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     adMessage: allAdMessages.fixed,
                     dynamicAdMessages: allAdMessages.opportunistic,
                     isMusicPlaylist: isMusicPlaylist,
-                    pinToTopStableId: pinToTopStableId
+                    pinToTopStableId: pinToTopStableId,
+                    byHistoryLedger: byHistoryAndSettings.0,
+                    byLocalNoticesEnabled: mode == .bubbles && tag == nil
                 )
                 let lastHeaderId = filteredEntries.last.flatMap { listMessageDateHeaderId(timestamp: $0.index.timestamp) } ?? 0
                 let processedView = ChatHistoryView(originalView: view, filteredEntries: filteredEntries, associatedData: associatedData, lastHeaderId: lastHeaderId, id: id, locationInput: update.2, ignoreMessagesInTimestampRange: update.3, ignoreMessageIds: update.4)
@@ -4120,7 +4133,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         var rows: [ChatHistoryVisibleReadRow] = []
         self.forEachVisibleMessageItemNode { itemNode in
             if let item = itemNode.item, let itemFrame = self.listView.itemNodeFrame(itemNode) {
-                rows.append(ChatHistoryVisibleReadRow(frame: itemFrame, messages: item.content.map { $0.0.index }))
+                rows.append(ChatHistoryVisibleReadRow(frame: itemFrame, messages: item.content.compactMap { $0.0.byLocalNotice == nil ? $0.0.index : nil }))
             }
         }
         if let maxMessage = chatHistoryMaxVisibleReadIndex(rows: rows, topInset: self.insets.top, lastMessageId: lastMessageId, isThread: self.chatLocation.threadId != nil) {

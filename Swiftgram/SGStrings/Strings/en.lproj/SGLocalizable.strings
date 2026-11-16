@@ -309,7 +309,7 @@
 "Settings.BYPlugin.Status.ActiveV2" = "BYPlugin 2.0 is loaded. Privacy and history settings apply to the current account; existing Swiftgram settings stay shared.";
 "Settings.BYPlugin.Status.LegacyV2" = "An older or limited plugin is loaded. Update both IPA and dylib for privacy and history features.";
 "Settings.BYPlugin.Ghost.Title" = "Ghost Mode";
-"Settings.BYPlugin.Ghost.Master" = "Ghost Mode: enable all / disable all";
+"Settings.BYPlugin.Ghost.Master" = "Account-wide ghost mode";
 "Settings.BYPlugin.Ghost.Online" = "Hide online presence";
 "Settings.BYPlugin.Ghost.Typing" = "Hide typing and upload indicators";
 "Settings.BYPlugin.Ghost.Reads" = "Do not send cloud-chat read receipts";
@@ -321,7 +321,7 @@
 "Settings.BYPlugin.History.Open" = "View and search history";
 "Settings.BYPlugin.History.Retention" = "Retention period";
 "Settings.BYPlugin.History.Days" = "days";
-"Settings.BYPlugin.History.Notice" = "Opt-in, current account only. Stores received cloud-message text, captions and attachment details before deletion or editing. Up to 500 messages, 10 versions each and 2 MiB, with oldest records removed first. Media bytes, paid and disappearing content are not archived. Already lost content cannot be recovered. Turning off stops recording; Clear removes saved history.";
+"Settings.BYPlugin.History.Notice" = "Applies to this account. History keeps up to 500 records, 10 versions each and 2 MiB of text/metadata. Available complete media is stored separately, up to 2 GiB / 5,000 files. Enable timed retention separately to keep received timed/view-once content visible in the original chat. These copies have no automatic age expiry; clear them manually. Full storage stops new captures. Nothing can recover files already lost or never downloaded. Paid content and secret-chat expiry remain unchanged. Turning off capture leaves existing history; use Clear to delete it.";
 "Settings.BYPlugin.History.Search" = "Search text, chat or author";
 "Settings.BYPlugin.History.DeletedOnly" = "Deleted messages only";
 "Settings.BYPlugin.History.Deleted" = "Deleted";
@@ -348,3 +348,41 @@
 "Settings.BYPlugin.Capability.Downloads" = "Download enhancement";
 "Settings.BYPlugin.Capability.Storage" = "Signing/storage compatibility";
 "Settings.BYPlugin.Capability.Login" = "Login restart entry";
+
+// BYPlugin 2.1 chat privacy, local notices and ad controls
+"Settings.BYPlugin.Status.ActiveV21" = "BYPlugin 2.1 is loaded. Privacy, history and ad settings apply to this account.";
+"Settings.BYPlugin.Status.LegacyV21" = "Some features are unavailable. Update both the IPA and dylib to BYPlugin 2.1.";
+"Settings.BYPlugin.Chat.Title" = "Ghost mode by chat";
+"Settings.BYPlugin.Chat.Menu" = "BYPlugin settings for this chat";
+"Settings.BYPlugin.Chat.Mode" = "Read, typing and story receipts";
+"Settings.BYPlugin.Chat.inherit" = "Follow account settings";
+"Settings.BYPlugin.Chat.hidden" = "Ghost mode on";
+"Settings.BYPlugin.Chat.visible" = "Normal receipts";
+"Settings.BYPlugin.Chat.Add" = "Choose a chat";
+"Settings.BYPlugin.Chat.Empty" = "No chat overrides. Chats currently follow account settings.";
+"Settings.BYPlugin.Chat.Notice" = "Overrides this account's read, typing and story-view settings for the selected chat, including its topics. Online status remains account-wide. Secret chats are excluded. Returning to normal may mark earlier messages read when you continue reading; hidden receipts are not queued for replay. Choose Follow account settings to remove the override.";
+"Settings.BYPlugin.History.Markers" = "Show recalled-message positions";
+"Settings.BYPlugin.History.Marker" = "Recalled message · Tap for local history";
+"Settings.BYPlugin.History.MarkerNotice" = "Markers appear only for locally recorded messages in the loaded chat history. They do not restore cloud messages.";
+"Settings.BYPlugin.Ads.Title" = "Ad removal";
+"Settings.BYPlugin.Ads.Sponsored" = "Hide official sponsored ads";
+"Settings.BYPlugin.Ads.Promotions" = "Fold matching promotional messages";
+"Settings.BYPlugin.Ads.Rules" = "Promotion filter rules";
+"Settings.BYPlugin.Ads.Placeholder" = "Keyword or URL fragment";
+"Settings.BYPlugin.Ads.AddRule" = "Add rule";
+"Settings.BYPlugin.Ads.RulesNotice" = "Match text, captions and hidden link targets without case sensitivity. Add one keyword or URL fragment at a time (up to 100 rules, 128 characters each). Tap a rule to remove it. No rules means no ordinary messages are filtered.";
+"Settings.BYPlugin.Ads.Empty" = "No rules yet.";
+"Settings.BYPlugin.Ads.Notice" = "Official sponsored ads are blocked in channels, bots, videos and search. Ordinary group/channel posts can be folded using your rules and expanded by tapping. Filtering affects this device's chat display, not notifications or cloud messages. Paid, timed and one-time media retain their existing behavior.";
+"Settings.BYPlugin.Ads.Folded" = "Filtered promotion · Tap to expand";
+
+"Settings.BYPlugin.History.KeepMedia" = "Save available media with message history";
+"Settings.BYPlugin.History.RetainTimed" = "Keep received timed media in this chat";
+"Settings.BYPlugin.History.Retained" = "Kept locally";
+"Settings.BYPlugin.History.RetainedMarker" = "Kept locally · visible only to you";
+"Settings.BYPlugin.History.OpenAttachment" = "Open / export";
+"Settings.BYPlugin.History.LoadingAttachment" = "Opening local file…";
+"Settings.BYPlugin.History.MediaUnavailable" = "No complete local file was available, or storage was full. This attachment cannot be recovered from its ID.";
+"Settings.BYPlugin.History.MediaNotSaved" = "This older record contains attachment information only.";
+"Settings.BYPlugin.History.MediaUsage" = "Local media storage";
+"Settings.BYPlugin.Status.ActiveV22" = "BYPlugin 2.2 active";
+"Settings.BYPlugin.Status.LegacyV22" = "Older plugin detected; inject BYPlugin 2.2 to enable media retention.";

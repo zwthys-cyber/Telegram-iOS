@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings
 import Postbox
 import SwiftSignalKit
 internal import TelegramApi
@@ -441,6 +442,8 @@ private class AdMessagesHistoryContextImpl {
     }
 
     private var isActivated: Bool = false
+    private var requestedActivation = false
+    private var byPrivacyDisposable: Disposable?
     private let disposable = MetaDisposable()
     
     init(queue: Queue, account: Account, peerId: EnginePeer.Id, messageId: EngineMessage.Id?, activateManually: Bool) {
@@ -454,8 +457,14 @@ private class AdMessagesHistoryContextImpl {
         if messageId == nil {
             self.state.set(CachedState.getCached(postbox: account.postbox, peerId: peerId)
             |> mapToSignal { cachedState -> Signal<State, NoError> in
+                guard !BYPrivacy.effective(account.peerId.toInt64()).hideSponsoredMessages else {
+                    return .single(State(interPostInterval: nil, messages: []))
+                }
                 if let cachedState = cachedState, cachedState.timestamp >= Int32(Date().timeIntervalSince1970) - 5 * 60 {
                     return account.postbox.transaction { transaction -> State in
+                        guard !BYPrivacy.effective(account.peerId.toInt64()).hideSponsoredMessages else {
+                            return State(interPostInterval: nil, messages: [])
+                        }
                         return State(interPostInterval: cachedState.interPostInterval, messages: cachedState.messages.compactMap { message -> Message? in
                             return message.toMessage(peerId: peerId, transaction: transaction)
                         })
@@ -469,14 +478,37 @@ private class AdMessagesHistoryContextImpl {
         if !activateManually {
             self.activate()
         }
+        self.byPrivacyDisposable = (byPrivacyChanges(accountId: account.peerId.toInt64())
+        |> deliverOn(queue)).start(next: { [weak self] _ in
+            self?.applyBYAdPolicy()
+        })
     }
     
     deinit {
         self.disposable.dispose()
         self.maskAsSeenDisposables.dispose()
+        self.byPrivacyDisposable?.dispose()
     }
     
+    private func applyBYAdPolicy() {
+        if BYPrivacy.effective(self.account.peerId.toInt64()).hideSponsoredMessages {
+            self.disposable.set(nil)
+            self.isActivated = false
+            let empty = State(interPostInterval: nil, messages: [])
+            self.stateValue = empty
+            // Also replace a cached-state signal whose initial emission is still pending.
+            self.state.set(.single(empty))
+        } else if self.requestedActivation && !self.isActivated {
+            self.activate()
+        }
+    }
+
     func activate() {
+        self.requestedActivation = true
+        if BYPrivacy.effective(self.account.peerId.toInt64()).hideSponsoredMessages {
+            self.applyBYAdPolicy()
+            return
+        }
         if self.isActivated {
             return
         }
@@ -491,18 +523,10 @@ private class AdMessagesHistoryContextImpl {
             return transaction.getPeer(peerId).flatMap(apiInputPeer)
         }
         |> mapToSignal { inputPeer -> Signal<(interPostInterval: Int32?, startDelay: Int32?, betweenDelay: Int32?, messages: [Message]), NoError> in
-            guard let inputPeer else {
+            guard let inputPeer, !BYPrivacy.effective(account.peerId.toInt64()).hideSponsoredMessages else {
                 return .single((nil, nil, nil, []))
             }
-            var flags: Int32 = 0
-            if let _ = messageId {
-                flags |= (1 << 0)
-            }
-            return account.network.request(Api.functions.messages.getSponsoredMessages(flags: flags, peer: inputPeer, msgId: messageId?.id))
-            |> map(Optional.init)
-            |> `catch` { _ -> Signal<Api.messages.SponsoredMessages?, NoError> in
-                return .single(nil)
-            }
+            return byRequestSponsoredMessages(accountPeerId: accountPeerId, network: account.network, peer: inputPeer, messageId: messageId?.id)
             |> mapToSignal { result -> Signal<(interPostInterval: Int32?, startDelay: Int32?, betweenDelay: Int32?, messages: [Message]), NoError> in
                 guard let result = result else {
                     return .single((nil, nil, nil, []))
@@ -590,6 +614,7 @@ private class AdMessagesHistoryContextImpl {
     }
 
     func markAsSeen(opaqueId: Data) {
+        guard !BYPrivacy.effective(self.account.peerId.toInt64()).hideSponsoredMessages else { return }
         let signal: Signal<Never, NoError> = self.account.network.request(Api.functions.messages.viewSponsoredMessage(randomId: Buffer(data: opaqueId)))
         |> `catch` { _ -> Signal<Api.Bool, NoError> in
             return .single(.boolFalse)
@@ -686,6 +711,7 @@ public class AdMessagesHistoryContext {
 
 
 func _internal_markAdAction(account: Account, opaqueId: Data, media: Bool, fullscreen: Bool) {
+    guard !BYPrivacy.effective(account.peerId.toInt64()).hideSponsoredMessages else { return }
     var flags: Int32 = 0
     if media {
         flags |= (1 << 0)
@@ -702,10 +728,28 @@ func _internal_markAdAction(account: Account, opaqueId: Data, media: Bool, fulls
 }
 
 func _internal_markAdAsSeen(account: Account, opaqueId: Data) {
+    guard !BYPrivacy.effective(account.peerId.toInt64()).hideSponsoredMessages else { return }
     let signal = account.network.request(Api.functions.messages.viewSponsoredMessage(randomId: Buffer(data: opaqueId)))
     |> `catch` { _ -> Signal<Api.Bool, NoError> in
         return .single(.boolFalse)
     }
     |> ignoreValues
     let _ = signal.start()
+}
+
+
+/// Shared by channel, bot and fullscreen-video ad requests; the guard is checked at send time.
+func byRequestSponsoredMessages(accountPeerId: PeerId, network: Network, peer: Api.InputPeer, messageId: Int32?) -> Signal<Api.messages.SponsoredMessages?, NoError> {
+    return Signal { subscriber in
+        if BYPrivacy.effective(accountPeerId.toInt64()).hideSponsoredMessages {
+            subscriber.putNext(nil)
+            subscriber.putCompletion()
+            return EmptyDisposable
+        }
+        let flags: Int32 = messageId == nil ? 0 : 1
+        return (network.request(Api.functions.messages.getSponsoredMessages(flags: flags, peer: peer, msgId: messageId))
+        |> map(Optional.init)
+        |> `catch` { _ -> Signal<Api.messages.SponsoredMessages?, NoError> in .single(nil) })
+        .start(next: { subscriber.putNext($0) }, completed: { subscriber.putCompletion() })
+    }
 }

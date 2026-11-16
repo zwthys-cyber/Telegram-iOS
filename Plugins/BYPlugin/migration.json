@@ -60,8 +60,20 @@
     "submodules/TelegramCore/Sources/State/ManagedSynchronizeConsumeMessageContentsOperations.swift",
     "submodules/TelegramCore/Sources/State/ManagedSynchronizeMarkAllUnseenPersonalMessagesOperations.swift",
     "submodules/TelegramCore/Sources/State/AccountViewTracker.swift",
-    "submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkAllChatsAsRead.swift"
+    "submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkAllChatsAsRead.swift",
+    "submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift",
+    "submodules/TelegramCore/Sources/TelegramEngine/Peers/AdPeers.swift",
+    "Swiftgram/SGSettingsUI/Sources/BYChatPrivacyController.swift",
+    "submodules/TelegramUI/Sources/ChatHistoryEntriesForView.swift",
+    "submodules/TelegramUI/Sources/ChatHistoryListNode.swift",
+    "submodules/TelegramUI/Sources/ChatController.swift",
+    "Swiftgram/SGSimpleSettings/Sources/BYHistoryMediaStorage.swift",
+    "submodules/TelegramCore/Sources/Utils/BYRetainedMessage.swift",
+    "submodules/TelegramCore/Sources/State/ManagedAutoremoveMessageOperations.swift",
+    "submodules/TelegramCore/Sources/State/Sync/StateReplay+ReadStates.swift",
+    "Swiftgram/SGSettingsUI/Sources/BYHistoryMediaPreviewController.swift",
+    "submodules/TelegramCore/Sources/State/ProcessSecretChatIncomingDecryptedOperations.swift"
   ],
   "verification": "See GitHub Actions for actual results; device installation is not implied.",
-  "plugin_version": "2.0"
+  "plugin_version": "2.2"
 }

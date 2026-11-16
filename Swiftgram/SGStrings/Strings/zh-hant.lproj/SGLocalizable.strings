@@ -272,7 +272,7 @@
 "Settings.BYPlugin.Status.ActiveV2" = "BYPlugin 2.0 已載入。幽靈模式與歷史設定僅作用於目前帳號，原有 Swiftgram 設定繼續共用。";
 "Settings.BYPlugin.Status.LegacyV2" = "已載入舊版或功能受限的外掛。請同時更新 IPA 和 dylib，以啟用幽靈模式和本機歷史。";
 "Settings.BYPlugin.Ghost.Title" = "幽靈模式";
-"Settings.BYPlugin.Ghost.Master" = "幽靈模式：全部開啟／關閉";
+"Settings.BYPlugin.Ghost.Master" = "全域幽靈模式";
 "Settings.BYPlugin.Ghost.Online" = "隱藏上線狀態";
 "Settings.BYPlugin.Ghost.Typing" = "隱藏輸入、錄音和上傳狀態";
 "Settings.BYPlugin.Ghost.Reads" = "不傳送雲端聊天已讀回執";
@@ -284,7 +284,7 @@
 "Settings.BYPlugin.History.Open" = "查看與搜尋歷史";
 "Settings.BYPlugin.History.Retention" = "歷史保留期限";
 "Settings.BYPlugin.History.Days" = "天";
-"Settings.BYPlugin.History.Notice" = "需手動開啟，僅目前帳號生效。在刪除或編輯前記錄本機已接收的雲端訊息文字、說明和附件資訊。最多 500 則訊息、每則 10 個版本、總計 2 MiB，優先清理最早的記錄。不封存媒體檔案本體、付費及閱後即焚內容，無法恢復此前已遺失的內容。關閉開關停止新增；清理按鈕刪除已存歷史。";
+"Settings.BYPlugin.History.Notice" = "僅目前帳號生效。最多 500 筆記錄、每筆 10 個版本，文字與資訊共 2 MiB。已完整下載的媒體單獨儲存，上限 2 GiB / 5000 個檔案。另行開啟閱後即焚保留後，收到的計時及單次內容會繼續在原聊天顯示本機副本，不依天數自動清理，須手動刪除。空間滿後停止新增；無法還原先前遺失或從未下載的檔案。付費內容及秘密聊天到期處理不變。關閉開關不會刪除既有歷史，清理按鈕會刪除歷史及其媒體。";
 "Settings.BYPlugin.History.Search" = "搜尋文字、聊天或傳送者";
 "Settings.BYPlugin.History.DeletedOnly" = "只看已收回訊息";
 "Settings.BYPlugin.History.Deleted" = "已收回";
@@ -311,3 +311,41 @@
 "Settings.BYPlugin.Capability.Downloads" = "下載增強";
 "Settings.BYPlugin.Capability.Storage" = "簽名與儲存相容";
 "Settings.BYPlugin.Capability.Login" = "登入重試入口";
+
+// BYPlugin 2.1 chat privacy, local notices and ad controls
+"Settings.BYPlugin.Status.ActiveV21" = "BYPlugin 2.1 已載入。幽靈模式、本機歷史和去廣告設定僅作用於目前帳號。";
+"Settings.BYPlugin.Status.LegacyV21" = "部分功能無法使用，請將 IPA 和 dylib 同時更新至 BYPlugin 2.1。";
+"Settings.BYPlugin.Chat.Title" = "依聊天設定幽靈模式";
+"Settings.BYPlugin.Chat.Menu" = "此聊天的 BYPlugin 設定";
+"Settings.BYPlugin.Chat.Mode" = "已讀、輸入和動態回執";
+"Settings.BYPlugin.Chat.inherit" = "跟隨全域";
+"Settings.BYPlugin.Chat.hidden" = "開啟幽靈模式";
+"Settings.BYPlugin.Chat.visible" = "正常傳送回執";
+"Settings.BYPlugin.Chat.Add" = "選擇聊天";
+"Settings.BYPlugin.Chat.Empty" = "尚無個別設定的聊天，目前均跟隨全域設定。";
+"Settings.BYPlugin.Chat.Notice" = "個別控制此聊天（含話題）的已讀、輸入和動態觀看回執；線上狀態仍依帳號統一控制。不適用於秘密聊天。切回正常後繼續閱讀可能確認先前的訊息；隱藏期間的回執不會排隊補傳。選「跟隨全域」可移除個別設定。";
+"Settings.BYPlugin.History.Markers" = "顯示收回位置提示";
+"Settings.BYPlugin.History.Marker" = "訊息已收回 · 點選查看本機歷史";
+"Settings.BYPlugin.History.MarkerNotice" = "僅對已記錄的訊息，在已載入的聊天記錄範圍內提示收回位置，不會恢復雲端訊息。";
+"Settings.BYPlugin.Ads.Title" = "去廣告";
+"Settings.BYPlugin.Ads.Sponsored" = "封鎖官方贊助廣告";
+"Settings.BYPlugin.Ads.Promotions" = "摺疊符合規則的推廣訊息";
+"Settings.BYPlugin.Ads.Rules" = "推廣過濾規則";
+"Settings.BYPlugin.Ads.Placeholder" = "關鍵字或連結片段";
+"Settings.BYPlugin.Ads.AddRule" = "新增規則";
+"Settings.BYPlugin.Ads.RulesNotice" = "比對文字、說明及隱藏連結網址，不區分大小寫。每次新增一個關鍵字或連結片段，最多 100 條，每條最多 128 字元。點選規則可刪除。未新增規則時不摺疊一般訊息。";
+"Settings.BYPlugin.Ads.Empty" = "尚無過濾規則。";
+"Settings.BYPlugin.Ads.Notice" = "封鎖頻道、機器人、影片和搜尋中的官方贊助廣告。群組／頻道的一般推廣貼文依自訂規則摺疊，點選可展開。過濾僅改變本機聊天顯示，不處理通知或刪除雲端訊息。付費、閱後即焚及一次性媒體維持現有處理方式。";
+"Settings.BYPlugin.Ads.Folded" = "已摺疊推廣訊息 · 點選展開";
+
+"Settings.BYPlugin.History.KeepMedia" = "儲存訊息歷史中的媒體";
+"Settings.BYPlugin.History.RetainTimed" = "原聊天保留收到的閱後即焚內容";
+"Settings.BYPlugin.History.Retained" = "已保留到本機";
+"Settings.BYPlugin.History.RetainedMarker" = "本機保留 · 僅你可見";
+"Settings.BYPlugin.History.OpenAttachment" = "開啟 / 匯出";
+"Settings.BYPlugin.History.LoadingAttachment" = "正在開啟本機檔案…";
+"Settings.BYPlugin.History.MediaUnavailable" = "未取得完整檔案，或儲存空間已滿。無法僅憑附件 ID 還原內容。";
+"Settings.BYPlugin.History.MediaNotSaved" = "這筆舊記錄只儲存了附件資訊。";
+"Settings.BYPlugin.History.MediaUsage" = "本機媒體用量";
+"Settings.BYPlugin.Status.ActiveV22" = "BYPlugin 2.2 已啟用";
+"Settings.BYPlugin.Status.LegacyV22" = "偵測到舊版外掛；注入 BYPlugin 2.2 後可啟用媒體保留。";

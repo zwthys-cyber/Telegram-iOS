@@ -4,9 +4,9 @@ if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
   echo "Build this project with GitHub Actions; local builds are disabled by project policy." >&2
   exit 1
 fi
-features="${BY_PLUGIN_FEATURES:-511}"
-if ! [[ "$features" =~ ^[0-9]{1,3}$ ]] || ((10#$features > 511)); then
-  echo "BY_PLUGIN_FEATURES must be an integer from 0 to 511." >&2
+features="${BY_PLUGIN_FEATURES:-16383}"
+if ! [[ "$features" =~ ^[0-9]{1,5}$ ]] || ((10#$features > 16383)); then
+  echo "BY_PLUGIN_FEATURES must be an integer from 0 to 16383." >&2
   exit 1
 fi
 features=$((10#$features))
@@ -37,7 +37,7 @@ import os
 import sys
 from pathlib import Path
 Path(sys.argv[1]).write_text(json.dumps({
-    "plugin_version": "2.0",
+    "plugin_version": "2.2",
     "host_abi": 1,
     "feature_flags": int(sys.argv[2]),
     "commit": os.environ["GITHUB_SHA"],

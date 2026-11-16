@@ -228,7 +228,7 @@ private class ReplyThreadHistoryContextImpl {
     }
     
     func applyMaxReadIndex(messageIndex: MessageIndex) {
-        guard !BYPrivacy.effective(self.account.peerId.toInt64()).hideReadReceipts else { return }
+        guard !BYPrivacy.effective(self.account.peerId.toInt64(), peerId: self.peerId.toInt64()).hideReadReceipts else { return }
         let peerId = self.peerId
         let threadId = self.threadId
         
@@ -358,7 +358,7 @@ private class ReplyThreadHistoryContextImpl {
                 return
             }
 
-            guard !BYPrivacy.effective(strongSelf.account.peerId.toInt64()).hideReadReceipts else { return }
+            guard !BYPrivacy.effective(strongSelf.account.peerId.toInt64(), peerId: strongSelf.peerId.toInt64()).hideReadReceipts else { return }
 
             var revalidate = false
 

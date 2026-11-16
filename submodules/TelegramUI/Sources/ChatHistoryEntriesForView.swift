@@ -12,11 +12,28 @@ import TextFormat
 import Markdown
 import Display
 import TelegramStringFormatting
+import SGSimpleSettings
+import SGStrings
 
 struct ChatHistoryEntriesForViewState {
     private var messageStableIdToLocalId: [UInt32: Int64] = [:]
     
+    private var byMarkerStableIds: [String: UInt32] = [:]
+    private var nextBYMarkerStableId: UInt32 = UInt32.max - 1_000_000
+
     init() {
+    }
+
+    mutating func byMarkerStableId(_ record: BYHistoryRecord, occupied: Set<UInt32>) -> UInt32 {
+        if let original = record.originalStableId, !occupied.contains(original) { return original }
+        if let existing = self.byMarkerStableIds[record.key], !occupied.contains(existing) { return existing }
+        while occupied.contains(self.nextBYMarkerStableId) || self.byMarkerStableIds.values.contains(self.nextBYMarkerStableId) {
+            self.nextBYMarkerStableId -= 1
+        }
+        let value = self.nextBYMarkerStableId
+        self.byMarkerStableIds[record.key] = value
+        self.nextBYMarkerStableId -= 1
+        return value
     }
     
     mutating func messageGroupStableId(messageStableId: UInt32, groupId: Int64, isLocal: Bool) -> Int64 {
@@ -88,12 +105,47 @@ func chatHistoryEntriesForView(
     adMessage: Message?,
     dynamicAdMessages: [Message],
     isMusicPlaylist: Bool,
-    pinToTopStableId: EngineMessage.StableId?
+    pinToTopStableId: EngineMessage.StableId?,
+    byHistoryLedger: BYHistoryLedger,
+    byLocalNoticesEnabled: Bool
 ) -> ([ChatHistoryEntry], ChatHistoryEntriesForViewState) {
     var currentState = currentState
     
     if historyAppearsCleared {
         return ([], currentState)
+    }
+    let byOptions = BYPrivacy.effective(context.account.peerId.toInt64())
+    let byRegularSubject: Bool
+    switch subject {
+    case nil, .message?: byRegularSubject = true
+    default: byRegularSubject = false
+    }
+    let byNoticesEnabled = byLocalNoticesEnabled && byRegularSubject && !isMusicPlaylist
+    func byNotice(id: MessageId, stableId: UInt32, timestamp: Int32, threadId: Int64?, kind: BYLocalMessageNoticeAttribute.Kind, key: String = "") -> Message {
+        let text = i18n("Settings.BYPlugin." + (kind == .deleted ? "History.Marker" : "Ads.Folded"), presentationData.strings.baseLanguageCode)
+        return Message(
+            stableId: stableId, stableVersion: UInt32.max, id: id,
+            globallyUniqueId: nil, groupingKey: nil, groupInfo: nil, threadId: threadId,
+            timestamp: timestamp, flags: [], tags: [], globalTags: [], localTags: [], customTags: [],
+            forwardInfo: nil, author: nil, text: "",
+            attributes: [BYLocalMessageNoticeAttribute(kind: kind, recordKey: key)],
+            media: [TelegramMediaAction(action: .customText(text: text, entities: [
+                MessageTextEntity(range: 0 ..< (text as NSString).length, type: .TextUrl(url: "byplugin://notice"))
+            ], additionalAttributes: nil))],
+            peers: SimpleDictionary<PeerId, Peer>(), associatedMessages: SimpleDictionary<MessageId, Message>(),
+            associatedMessageIds: [], associatedMedia: [:], associatedThreadInfo: nil, associatedStories: [:]
+        )
+    }
+    func byNoticeEntry(_ message: Message) -> ChatHistoryEntry {
+        return .MessageEntry(message, presentationData, true, nil, .none, ChatMessageEntryAttributes())
+    }
+    func byRetainedEntry(_ record: BYHistoryRecord, stableId: UInt32, peer: Peer?) -> ChatHistoryEntry? {
+        guard let message = context.engine.messages.byRetainedHistoryMessage(
+            record: record, stableId: stableId, chatPeer: peer.map(EnginePeer.init),
+            noticeText: i18n("Settings.BYPlugin.History.RetainedMarker", presentationData.strings.baseLanguageCode),
+            missingMediaText: i18n("Settings.BYPlugin.History.MediaUnavailable", presentationData.strings.baseLanguageCode)
+        ) else { return nil }
+        return byNoticeEntry(message._asMessage())
     }
     var entries: [ChatHistoryEntry] = []
     var adminRanks: [PeerId: CachedChannelAdminRank] = [:]
@@ -169,6 +221,7 @@ func chatHistoryEntriesForView(
     }
     
     var count = 0
+    var byHasFoldedPromotions = false
     loop: for entry in view.entries {
         var message = entry.message.withAppliedEphemeralReplacementMessage()
         var isRead = entry.isRead
@@ -205,6 +258,34 @@ func chatHistoryEntriesForView(
         }
         
         count += 1
+
+        if byNoticesEnabled && byOptions.retainTimed,
+           message.media.contains(where: { $0 is TelegramMediaExpiredContent }),
+           let record = byHistoryLedger.records.first(where: { $0.retainedTimed == true && $0.peerId == message.id.peerId.toInt64() && $0.namespace == message.id.namespace && $0.messageId == message.id.id }),
+           let retainedEntry = byRetainedEntry(record, stableId: message.stableId, peer: chatPeer) {
+            entries.append(retainedEntry)
+            continue loop
+        }
+
+        // Fold only ordinary incoming group/channel posts. The original remains in Postbox.
+        if byNoticesEnabled && byOptions.filterPromotions,
+           message.id.namespace == Namespaces.Message.Cloud,
+           message.id.peerId.namespace == Namespaces.Peer.CloudGroup || message.id.peerId.namespace == Namespaces.Peer.CloudChannel,
+           message.effectivelyIncoming(context.account.peerId),
+           message.paidContent == nil,
+           !message.attributes.contains(where: { $0 is AutoclearTimeoutMessageAttribute || $0 is AutoremoveTimeoutMessageAttribute }),
+           !message.media.contains(where: { $0 is TelegramMediaAction || $0 is TelegramMediaInvoice }),
+           !BYPromotionFilter.isRevealed(accountId: context.account.peerId.toInt64(), peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, messageId: message.id.id) {
+            let links = (message.textEntitiesAttribute?.entities ?? []).compactMap { entity -> String? in
+                if case let .TextUrl(url) = entity.type { return url }
+                return nil
+            }
+            if BYPromotionFilter.matches(text: message.text, links: links, keywords: byOptions.promotionKeywords) {
+                byHasFoldedPromotions = true
+                entries.append(byNoticeEntry(byNotice(id: message.id, stableId: message.stableId, timestamp: message.timestamp, threadId: message.threadId, kind: .promotion)))
+                continue loop
+            }
+        }
         
         if let customThreadOutgoingReadState = customThreadOutgoingReadState {
             isRead = customThreadOutgoingReadState >= message.id
@@ -344,6 +425,10 @@ func chatHistoryEntriesForView(
         }
     }
     
+    // An album may merge around a folded member. Order by the final group index
+    // before unread separators and thread headers are inserted.
+    if byHasFoldedPromotions { entries.sort() }
+
     if !groupMessages && reverseGroupedMessages {
         var flatEntries: [ChatHistoryEntry] = []
         
@@ -698,7 +783,38 @@ func chatHistoryEntriesForView(
             }
         }
         
-        if !dynamicAdMessages.isEmpty {
+        if byNoticesEnabled && ((byOptions.keepDeleted && byOptions.showDeletedMarkers) || byOptions.retainTimed),
+           !view.isLoading, let peerId = location.peerId, peerId.namespace != Namespaces.Peer.SecretChat {
+            let cloudMessages = view.entries.map(\.message).filter { $0.id.peerId == peerId && $0.id.namespace == Namespaces.Message.Cloud }
+            let lowerBounded = view.earlierId != nil || view.holeEarlier
+            let upperBounded = view.laterId != nil || view.holeLater
+            // Empty partial windows do not establish where a deleted message belongs.
+            if !cloudMessages.isEmpty || (!lowerBounded && !upperBounded) {
+                let positions = cloudMessages.map { BYHistoryPosition(timestamp: $0.timestamp, messageId: $0.id.id) }
+                let records = byHistoryLedger.deletionMarkers(
+                    peerId: peerId.toInt64(), namespace: Namespaces.Message.Cloud, threadId: location.threadId,
+                    lower: lowerBounded ? positions.min() : nil, upper: upperBounded ? positions.max() : nil,
+                    existingMessageIds: Set(cloudMessages.map { $0.id.id }),
+                    now: Int64(Date().timeIntervalSince1970), days: byOptions.historyDays,
+                    includeDeleted: byOptions.keepDeleted && byOptions.showDeletedMarkers, includeRetainedTimed: byOptions.retainTimed
+                )
+                var occupiedStableIds = Set(view.entries.map { $0.message.stableId })
+                for record in records {
+                    let id = MessageId(peerId: peerId, namespace: record.namespace, id: record.messageId)
+                    if pendingRemovedMessages.contains(id) { continue }
+                    let stableId = currentState.byMarkerStableId(record, occupied: occupiedStableIds)
+                    occupiedStableIds.insert(stableId)
+                    if record.retainedTimed == true && byOptions.retainTimed, let retainedEntry = byRetainedEntry(record, stableId: stableId, peer: chatPeer) {
+                        entries.append(retainedEntry)
+                    } else {
+                        entries.append(byNoticeEntry(byNotice(id: id, stableId: stableId, timestamp: record.sentAt, threadId: record.threadId, kind: .deleted, key: record.key)))
+                    }
+                }
+                entries.sort()
+            }
+        }
+
+        if !byOptions.hideSponsoredMessages && !dynamicAdMessages.isEmpty {
             assert(entries.sorted() == entries)
             for message in dynamicAdMessages {
                 entries.append(.MessageEntry(message, presentationData, false, nil, .none, ChatMessageEntryAttributes(rank: nil, isContact: false, contentTypeHint: .generic, updatingMedia: nil, isPlaying: false, isCentered: false, authorStoryStats: nil, displayContinueThreadFooter: false, pinToTop: false)))
@@ -706,7 +822,7 @@ func chatHistoryEntriesForView(
             entries.sort()
         }
 
-        if view.laterId == nil && !view.isLoading {
+        if !byOptions.hideSponsoredMessages && view.laterId == nil && !view.isLoading {
             if !entries.isEmpty, case let .MessageEntry(lastMessage, _, _, _, _, _) = entries[entries.count - 1], let message = adMessage {
                 var nextAdMessageId: Int32 = 10000
                 let updatedMessage = Message(

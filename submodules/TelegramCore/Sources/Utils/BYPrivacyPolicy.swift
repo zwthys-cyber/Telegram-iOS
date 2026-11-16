@@ -3,15 +3,15 @@ import Postbox
 import SwiftSignalKit
 import SGSimpleSettings
 
-func byAccountOptions(transaction: Transaction) -> BYAccountOptions {
+func byAccountOptions(transaction: Transaction, peerId: PeerId? = nil) -> BYAccountOptions {
     guard let state = transaction.getState() as? AuthorizedAccountState else {
         return BYAccountOptions()
     }
-    return BYPrivacy.effective(state.peerId.toInt64())
+    return BYPrivacy.effective(state.peerId.toInt64(), peerId: peerId?.toInt64())
 }
 
 func bySuppressRead(transaction: Transaction, peerId: PeerId) -> Bool {
-    return peerId.namespace != Namespaces.Peer.SecretChat && byAccountOptions(transaction: transaction).hideReadReceipts
+    return peerId.namespace != Namespaces.Peer.SecretChat && byAccountOptions(transaction: transaction, peerId: peerId).hideReadReceipts
 }
 
 func byPrivacyChanges(accountId: Int64) -> Signal<Void, NoError> {
@@ -35,4 +35,11 @@ func bySuppressContentRead(transaction: Transaction, id: MessageId) -> Bool {
     return !message.attributes.contains(where: {
         $0 is AutoclearTimeoutMessageAttribute || $0 is AutoremoveTimeoutMessageAttribute
     })
+}
+
+
+public extension TelegramEngine.Messages {
+    func byPrivacySettingsChanges() -> Signal<Void, NoError> {
+        return byPrivacyChanges(accountId: self.account.peerId.toInt64())
+    }
 }

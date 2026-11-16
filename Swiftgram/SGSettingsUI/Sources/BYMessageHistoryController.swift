@@ -11,7 +11,7 @@ import SGSimpleSettings
 import SGStrings
 
 private enum BYHistorySection: Int32, SGItemListSection { case controls, records, management }
-private enum BYHistoryAction: Hashable { case more, clear, confirm, cancel, copy(String) }
+private enum BYHistoryAction: Hashable { case more, clear, confirm, cancel, copy(String), openFile(String, String) }
 private struct BYHistoryUIState: Equatable {
     var query = ""
     var deletedOnly = false
@@ -43,6 +43,7 @@ public func byMessageHistoryController(context: AccountContext, peerId: Int64? =
                 let _ = context.engine.messages.byRemoveMessageHistory(key: recordKey).start()
                 state.confirmingClear = false
             case let .copy(text): UIPasteboard.general.string = text
+            case let .openFile(key, localId): pushImpl?(byMessageHistoryMediaController(context: context, recordKey: key, localId: localId))
             }
             statePromise.set(state)
         },
@@ -64,17 +65,32 @@ public func byMessageHistoryController(context: AccountContext, peerId: Int64? =
         if let recordKey {
             if let record = ledger.records.first(where: { $0.key == recordKey }) {
                 entries.append(.plainNotice(id: 1, section: .records, text: "\(record.chatTitle)\n\(record.author)\nID: \(record.messageId) · \(date(Int64(record.sentAt)))"))
-                if let deletedAt = record.deletedAt {
+                if record.retainedTimed == true {
+                    entries.append(.plainNotice(id: 2, section: .records, text: tr("History.Retained")))
+                } else if let deletedAt = record.deletedAt {
                     entries.append(.plainNotice(id: 2, section: .records, text: tr("History.Deleted") + " · " + date(deletedAt)))
                 }
                 for (index, version) in record.versions.enumerated() {
-                    let base = 10 + index * 3
+                    let base = 10 + index * 32
                     entries.append(.header(id: base, section: .records, text: "\(index + 1) · \(date(version.timestamp))", badge: nil))
                     let preview = String(version.text.prefix(4096))
-                    let body = ([preview] + version.media).filter { !$0.isEmpty }.joined(separator: "\n")
+                    let mediaDescriptions = (version.attachments?.isEmpty == false) ? [] : version.media.map { $0.components(separatedBy: " · id:").first ?? $0 }
+                    let body = ([preview] + mediaDescriptions).filter { !$0.isEmpty }.joined(separator: "\n")
                     let note = version.truncated || preview != version.text ? "\n" + tr("History.Truncated") : ""
                     entries.append(.plainNotice(id: base + 1, section: .records, text: body + note))
-                    entries.append(.action(id: base + 2, section: .records, actionType: .copy(version.text), text: tr("History.Copy"), kind: .generic))
+                    if !version.text.isEmpty {
+                        entries.append(.action(id: base + 2, section: .records, actionType: .copy(version.text), text: tr("History.Copy"), kind: .generic))
+                    }
+                    for (attachmentIndex, attachment) in (version.attachments ?? []).enumerated() {
+                        if let localId = attachment.localId {
+                            entries.append(.action(id: base + 3 + attachmentIndex, section: .records, actionType: .openFile(record.key, localId), text: tr("History.OpenAttachment") + " · " + attachment.fileName, kind: .generic))
+                        } else {
+                            entries.append(.plainNotice(id: base + 3 + attachmentIndex, section: .records, text: attachment.fileName + "\n" + tr("History.MediaUnavailable")))
+                        }
+                    }
+                    if !version.media.isEmpty && (version.attachments?.isEmpty ?? true) {
+                        entries.append(.plainNotice(id: base + 24, section: .records, text: tr("History.MediaNotSaved")))
+                    }
                 }
             } else {
                 entries.append(.plainNotice(id: 1, section: .records, text: tr("History.Empty")))
@@ -84,12 +100,15 @@ public func byMessageHistoryController(context: AccountContext, peerId: Int64? =
             entries.append(.toggle(id: 2, section: .controls, settingName: 0, value: state.deletedOnly, text: tr("History.DeletedOnly"), enabled: true))
             let records = ledger.matching(state.query, peerId: peerId, messageId: messageId, deletedOnly: state.deletedOnly)
             entries.append(.plainNotice(id: 3, section: .controls, text: tr("History.Count") + ": \(records.count)"))
+            entries.append(.plainNotice(id: 4, section: .controls, text: tr("History.MediaUsage") + ": " + ByteCountFormatter.string(fromByteCount: ledger.mediaByteCount, countStyle: .file) + " / 2 GiB"))
             if records.isEmpty {
-                entries.append(.plainNotice(id: 4, section: .records, text: tr("History.Empty")))
+                entries.append(.plainNotice(id: 5, section: .records, text: tr("History.Empty")))
             }
             for (index, record) in records.prefix(state.limit).enumerated() {
-                let prefix = record.deletedAt == nil ? tr("History.Edited") : tr("History.Deleted")
-                let preview = String((record.versions.last?.text ?? "").prefix(60)).replacingOccurrences(of: "\n", with: " ")
+                let prefix = record.retainedTimed == true ? tr("History.Retained") : (record.deletedAt == nil ? tr("History.Edited") : tr("History.Deleted"))
+                let version = record.versions.last
+                let description = version?.text.isEmpty == false ? version!.text : (version?.attachments?.first?.fileName ?? version?.media.first?.components(separatedBy: " · id:").first ?? "")
+                let preview = String(description.prefix(60)).replacingOccurrences(of: "\n", with: " ")
                 entries.append(.disclosure(id: 10 + index, section: .records, link: record.key, text: "\(prefix) · \(record.chatTitle) · \(preview)"))
             }
             if records.count > state.limit {

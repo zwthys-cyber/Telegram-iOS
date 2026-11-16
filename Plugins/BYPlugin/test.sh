@@ -10,8 +10,10 @@ xcrun swiftc -warnings-as-errors \
   Swiftgram/SGSimpleSettings/Sources/BYPlugin.swift \
   Plugins/BYPlugin/Tests/BridgeTests.swift -o "$test_dir/bridge-tests"
 "$test_dir/bridge-tests" absent
-for scenario in enabled previous legacy disabled incompatible; do
-  extra=(-DBY_PLUGIN_FEATURES=511)
+for scenario in enabled v21 v2 previous legacy disabled incompatible; do
+  extra=(-DBY_PLUGIN_FEATURES=16383)
+  if [[ "$scenario" == "v21" ]]; then extra=(-DBY_PLUGIN_FEATURES=4095); fi
+  if [[ "$scenario" == "v2" ]]; then extra=(-DBY_PLUGIN_FEATURES=511); fi
   if [[ "$scenario" == "previous" ]]; then extra=(-DBY_PLUGIN_FEATURES=127); fi
   if [[ "$scenario" == "legacy" ]]; then extra=(-DBY_PLUGIN_FEATURES=63); fi
   if [[ "$scenario" == "disabled" ]]; then extra=(-DBY_PLUGIN_FEATURES=0); fi
@@ -39,3 +41,9 @@ xcrun swiftc -warnings-as-errors \
   Swiftgram/SGSimpleSettings/Sources/BYHistoryModel.swift \
   Plugins/BYPlugin/Tests/HistoryTests.swift -o "$test_dir/history-tests"
 "$test_dir/history-tests"
+
+xcrun swiftc -warnings-as-errors \
+  Swiftgram/SGSimpleSettings/Sources/BYHistoryModel.swift \
+  Swiftgram/SGSimpleSettings/Sources/BYHistoryMediaStorage.swift \
+  Plugins/BYPlugin/Tests/MediaStorageTests.swift -o "$test_dir/media-storage-tests"
+"$test_dir/media-storage-tests"

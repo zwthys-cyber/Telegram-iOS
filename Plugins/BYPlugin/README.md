@@ -1,5 +1,22 @@
 # BYPlugin — 全能签注入插件
 
+
+## BYPlugin 2.2 — media history and retained timed content
+
+The prior 2.1 ledger saved attachment descriptions only. New opt-in history captures complete, already available photo/video/document resources into an account-local archive using hard links. Entries offer Quick Look and export. Old metadata-only records cannot recover missing bytes.
+
+Settings → BYPlugin → Local message history:
+- Enable recalled/edited history, with “Save available media” on, to retain downloaded attachments at deletion/edit time.
+- Independently enable “Keep received timed media in this chat” to retain received cloud timed/view-once content. It defaults off. The viewer observes downloads already in progress; it starts no background download. Expiry and consumption still update canonical Postbox/server state. A presentation-only message shows the archived text/media at its original position, with a local-only label.
+- Timed copies survive the ordinary 7/30/90-day cleanup. Manually delete a record or clear history to remove its archived files. Turning capture off does not erase history.
+- Paid content remains excluded. Secret-chat expiry is unchanged. Files never downloaded, incomplete at capture, or already lost cannot be restored.
+- Limits per account: 500 records, 10 versions each, 2 MiB metadata, 2 GiB media / 5,000 files. At capacity, new captures may be rejected; retained timed records are not silently evicted.
+
+Use the matching 2.2 IPA and injected BYPlugin.dylib (ABI 1, feature mask 16383). Older ABI-1 plugins retain their earlier features; the new media and timed-retention gates require bits 4096 and 8192.
+
+Validation runs only in GitHub Actions on xcode-27 (macOS 27 / Xcode 27.1). Added real replay/cache-removal, timer, view-once, paid/off and projection tests; hard-link/quota/path tests; deliberate media/timer regression mutants. Build and runtime results must be read from the current commit's Actions runs. Device preview, export, chat scrolling and signer injection still require an installed-app check.
+
+
 配套主程序：本仓库的 Swiftgram 13.2.1 / BYPlugin Host ABI 1。插件是 arm64 iOS 动态库，不需要越狱、Substrate 或额外 Swift 运行库。
 
 ## GitHub 下载与全能签使用
@@ -37,7 +54,7 @@
 - `migration.json`：上游和旧定制提交、适配文件列表。
 - `build.sh` / `test.sh`：只允许 GitHub Actions 执行，禁止在当前服务器编译或测试。
 
-ABI 1 功能位：icons=1、messageTools=2、localFeatures=4、downloadBoost=8、privateStorage=16、loginRestart=32、localSaving=64、ghostMode=128、messageHistory=256。默认 511，编译插件时可通过 `BY_PLUGIN_FEATURES` 制作功能子集，不需要重编译宿主。升级 ABI 时需同时迁移宿主接口。
+ABI 1 功能位：icons=1、messageTools=2、localFeatures=4、downloadBoost=8、privateStorage=16、loginRestart=32、localSaving=64、ghostMode=128、messageHistory=256、chatPrivacy=512、deletionMarkers=1024、adBlock=2048。默认 4095，编译插件时可通过 `BY_PLUGIN_FEATURES` 制作功能子集，不需要重编译宿主。升级 ABI 时需同时迁移宿主接口。
 
 ## 构建和验证范围
 
@@ -81,7 +98,7 @@ GitHub 使用最新 macOS 27 ARM64 环境 `xcode-27`，从上游 `versions.json`
 - 历史页支持全文/聊天/发送者搜索、只看撤回、分页、按消息看旧版、复制文本、二次确认清理。保留期限 7/30/90 天，最多 500 条、每条 10 版、总 JSON 编码 2 MiB。超限清最旧条目；期限在写入和进入历史页时清理。关闭记录不自动删除历史。未收到的原文和此前已销毁的数据无法恢复。
 - 旧版 127/63 功能位仍兼容，新功能必须用本次 IPA 和 dylib 配套。缺失/旧版/禁用/不兼容插件均不会启用新隐私策略。已有历史仍可查看和删除。
 
-### 本次验证（2026-11-15）
+### 2.0 验证记录（2026-11-15）
 
 验证源码为 `effd6e8`，全部在 GitHub Actions 的 macOS 27.0.1 ARM64 / Xcode 27.1 执行，当前服务器未编译、未测试。
 
@@ -99,3 +116,31 @@ Compared on 2026-11-15 against the projects' own descriptions:
 - [Nicegram's Ghost Mode guide](https://nicegram.app/articles/ghost) describes last-seen privacy plus chat preview, including the limits of sending/typing while hidden.
 
 BYPlugin implements independent per-account activity/read/story toggles in the injected main app and a bounded local history viewer. App extensions and system integrations do not automatically inherit these main-app privacy settings. It does not change Telegram's server privacy settings automatically. Sending messages, calls, another logged-in client, and requests already sent can still reveal activity. New privacy/history switches default off; earlier local-saving and interface preferences are retained. History only captures versions this device actually had; missing past versions and media bytes cannot be recovered by this viewer.
+
+## BYPlugin 2.1：按聊天隐私、撤回位置和去广告
+
+聊天幽灵模式提供跟随全局／此聊天开启／此聊天关闭，作用于该聊天的输入、已读及对应发布者的动态观看回执；在线状态仍属账号全局。旧账号设置按缺失字段默认值兼容读取。撤回位置提示只投影已保存的本地记录，保留原消息日期及话题，不重新写入聊天数据库。去广告分别处理官方赞助内容与可展开的推广规则过滤；付费内容、消费和销毁语义保持原样。新增能力位为 chatPrivacy=512、deletionMarkers=1024、adBlock=2048，总功能位 4095，ABI 1 不变。
+
+### 使用入口与默认值
+
+- **设置 → Swiftgram → BYPlugin 设置 → 按聊天设置幽灵模式**：选择聊天后设置“跟随全局／开启幽灵模式／正常发送回执”。也可长按聊天中的普通消息，选择“此聊天的 BYPlugin 设置”。跟随全局会移除该聊天的单独设置；论坛话题跟随所属聊天。各账号互不影响，空聊天也能从选择器添加。
+- **本地消息历史 → 显示撤回位置提示**：启用防撤回后，在当前加载范围内显示“消息已撤回”，点击或长按可打开本地记录。提示不参与已读推进，不提供回复、转发、删除云端消息等操作。该显示选项默认开启，但只有已启用防撤回且配套插件提供能力时生效；防撤回本身仍默认关闭。
+- **去广告 → 屏蔽官方赞助广告**：阻止频道、机器人、视频和搜索广告请求；当前聊天中的缓存广告随设置清除。普通用户发布的推广帖需要下方规则过滤，不能可靠地自动识别所有广告。
+- **去广告 → 折叠匹配的推广消息／推广过滤规则**：匹配群组和频道的普通入站消息正文、说明、隐藏链接地址，不区分大小写。最多 100 条规则，每条 128 字符。匹配内容显示一条提示，点击可展开；展开状态只保存在本次进程内，最多 500 条。此过滤不删除消息，不修改通知、搜索结果或付费、定时媒体的处理。
+- 两个去广告开关默认关闭，规则初始为空；已有设置全部保留。全局幽灵模式开关不覆盖已设置的聊天例外，在线状态始终是账号级选项。
+- 必须同时更新本次 IPA 和 dylib。旧版 511／127／63 插件保留兼容，但不会启用其未声明的新能力。
+
+### 2.1 手机交互验收
+
+本会话没有 iOS 交互工具，以下检查尚未在真机执行。完整编译和命令行模拟器测试不能代替这些检查：
+
+1. 在简体中文、繁体中文、英文及浅／深色下打开三个新设置页，确认页面可滚动、长聊天名与规则可读，返回后状态更新。
+2. 用两个自有账号验证：全局开启幽灵时，仅将聊天 A 设为正常，聊天 B 继续隐藏；全局关闭时，单独隐藏 B。检查已读、输入／录音与动态观看，确认在线选项仍全局生效。选择跟随全局后例外列表移除该聊天。
+3. 启用防撤回后接收并撤回普通文字、说明和相册中的一条消息，检查原日期附近的提示、点击历史、分页与话题隔离。清理记录或关闭位置提示后该提示应消失；消息本体仍按服务端删除。
+4. 打开去广告并重进已有赞助广告的频道／机器人／视频／搜索。添加一个自有测试消息中的词或链接片段，检查仅普通群／频道消息被折叠，点击可展开，关闭过滤恢复原文。相册中一条说明命中时，检查折叠提示与剩余相册的时间顺序。
+5. 确认撤回／折叠提示不能被滑动回复或普通消息批量操作；文字链接与空白区域点击都应打开历史或展开。检查未读按钮、滚动位置与论坛评论列表。
+6. 不加载、加载旧插件或禁用功能位时恢复正常聊天显示；旧历史仍可从历史页查看和清理。付费和定时／一次性媒体保持原有消费与手动保存行为。
+
+### 2.1 GitHub 验证
+
+编译与验证正在 [PR #5](https://github.com/zwthys-cyber/Telegram-iOS/pull/5) 进行，全部使用 GitHub Actions 的 macOS 环境。已在真实 Postbox 测试发现并修正无符号位置标识的编码问题，使用有符号 Int64 存储并加入 UInt32.max 读写回归。最终套件、随机同步和 IPA 结果将在完成后更新。
