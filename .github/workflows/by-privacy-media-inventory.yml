@@ -1,0 +1,27 @@
+name: BY media retention source inventory
+on:
+  push:
+    branches: [upgrade/by-plugin-chat-privacy]
+    paths: ['.github/workflows/by-privacy-media-inventory.yml']
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: xcode-27
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Inspect media and expiry integration points
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          tokens = ("markMessageContentAsConsumedRemotely(", "byArchiveDeletedMessages(", "byArchiveEditedMessage(", "QLPreviewController", "struct EngineTempBox", "enum EngineTempBox")
+          for root in ("submodules/TelegramCore", "Swiftgram/SGSettingsUI", "submodules/GalleryUI"):
+              for path in Path(root).rglob("*.swift"):
+                  for number, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
+                      if any(token in line for token in tokens):
+                          print(f"{path}:{number}: {line.strip()}")
+          PY
