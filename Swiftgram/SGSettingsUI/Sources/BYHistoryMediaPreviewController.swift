@@ -94,13 +94,7 @@ private final class BYHistoryMediaPreviewController: ViewController, QLPreviewCo
 
     @objc private func share() {
         guard let file = self.file else { return }
-        // UIImage exposes Save Image in the system sheet; file URLs retain Save to Files.
-        var items: [Any] = [file.url]
-        let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "heic", "webp"]
-        if imageExtensions.contains(file.url.pathExtension.lowercased()), let image = UIImage(contentsOfFile: file.url.path) {
-            items.append(image)
-        }
-        let activity = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let activity = UIActivityViewController(activityItems: [BYHistoryExportItem(url: file.url)], applicationActivities: nil)
         activity.completionWithItemsHandler = { [file] _, _, _, _ in withExtendedLifetime(file) {} }
         if let popover = activity.popoverPresentationController {
             // Display's navigation bar is custom; its UIBarButtonItem has no UIKit bar view.
@@ -113,5 +107,25 @@ private final class BYHistoryMediaPreviewController: ViewController, QLPreviewCo
     func numberOfPreviewItems(in controller: QLPreviewController) -> Int { self.file == nil ? 0 : 1 }
     func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
         return self.file!.url as NSURL
+    }
+}
+
+/// Supply one item: an image for Photos, the original named file for other destinations.
+private final class BYHistoryExportItem: NSObject, UIActivityItemSource {
+    private let url: URL
+    init(url: URL) { self.url = url; super.init() }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "heic", "webp"]
+        if imageExtensions.contains(self.url.pathExtension.lowercased()),
+           let image = UIImage(contentsOfFile: self.url.path) { return image }
+        return self.url
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        if activityType == .saveToCameraRoll, let image = UIImage(contentsOfFile: self.url.path) {
+            return image
+        }
+        return self.url
     }
 }
