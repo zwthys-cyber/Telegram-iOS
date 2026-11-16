@@ -26,7 +26,7 @@ private final class BYHistoryMediaPreviewController: ViewController, QLPreviewCo
         let data = context.sharedContext.currentPresentationData.with { $0 }
         let lang = data.strings.baseLanguageCode
         self.missingText = i18n("Settings.BYPlugin.History.MediaUnavailable", lang)
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: data.theme.rootController.navigationBar, strings: NavigationBarStrings(presentationStrings: data.strings)))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: data))
         self.title = i18n("Settings.BYPlugin.History.OpenAttachment", lang)
         self.statusBar.statusBarStyle = data.theme.overallDarkAppearance ? .White : .Black
         self.preview.dataSource = self

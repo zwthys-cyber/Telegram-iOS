@@ -22,8 +22,8 @@ permissions:
   contents: read
 concurrency:
   group: by-plugin-${{ github.ref }}
-  # Let the running build save its cache; keep only the newest pending revision.
-  cancel-in-progress: false
+  # Corrected source takes priority; completed build caches remain reusable.
+  cancel-in-progress: true
 jobs:
   plugin:
     name: Build and verify injected plugin
