@@ -100,6 +100,7 @@ jobs:
           key: by-bazel-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock', '.gitmodules') }}-${{ github.sha }}
           restore-keys: |
             by-bazel-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock', '.gitmodules') }}-
+            by-tests-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock', '.gitmodules') }}-
       - name: Build complete release arm64 app
         run: python3 -u .github/scripts/build_by_release.py
       - name: Package and verify base IPA
