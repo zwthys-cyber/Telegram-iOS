@@ -171,6 +171,8 @@ extension ChatControllerImpl {
         )
         
         let contextController = makeContextController(presentationData: self.presentationData, configuration: configuration)
+        let retainedMedia = self.context.engine.messages.byObserveTimedMessageMedia(message: message).start()
+        contextController.dismissed = { retainedMedia.dispose() }
         contextController.getOverlayViews = { [weak self] in
             guard let self else {
                 return []

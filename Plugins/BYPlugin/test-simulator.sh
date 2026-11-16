@@ -7,8 +7,9 @@ sdk=$(xcrun --sdk iphonesimulator --show-sdk-path)
 xcrun swiftc -warnings-as-errors -sdk "$sdk" -target arm64-apple-ios15.0-simulator \
   Swiftgram/SGSimpleSettings/Sources/BYPlugin.swift \
   Plugins/BYPlugin/Tests/BridgeTests.swift -o "$test_dir/bridge-tests"
-for scenario in enabled v2 previous legacy disabled incompatible; do
-  extra=(-DBY_PLUGIN_FEATURES=4095)
+for scenario in enabled v21 v2 previous legacy disabled incompatible; do
+  extra=(-DBY_PLUGIN_FEATURES=16383)
+  if [[ "$scenario" == "v21" ]]; then extra=(-DBY_PLUGIN_FEATURES=4095); fi
   if [[ "$scenario" == "v2" ]]; then extra=(-DBY_PLUGIN_FEATURES=511); fi
   if [[ "$scenario" == "previous" ]]; then extra=(-DBY_PLUGIN_FEATURES=127); fi
   if [[ "$scenario" == "legacy" ]]; then extra=(-DBY_PLUGIN_FEATURES=63); fi
@@ -23,7 +24,7 @@ trap 'xcrun simctl shutdown "$device" >/dev/null 2>&1 || true; xcrun simctl dele
 xcrun simctl boot "$device"
 xcrun simctl bootstatus "$device" -b
 xcrun simctl spawn "$device" "$test_dir/bridge-tests" absent
-for scenario in enabled v2 previous legacy disabled incompatible; do
+for scenario in enabled v21 v2 previous legacy disabled incompatible; do
   SIMCTL_CHILD_DYLD_INSERT_LIBRARIES="$test_dir/$scenario.dylib" \
     xcrun simctl spawn "$device" "$test_dir/bridge-tests" "$scenario"
 done

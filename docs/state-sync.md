@@ -1128,3 +1128,14 @@ Validated source effd6e8: the full TelegramCore suite reported 909 XCTest cases,
 BYPlugin 2.1 in progress: outgoing read and activity policies resolve per-chat overrides within the current account. History snapshots additionally retain optional thread/stable identity for presentation-only deletion markers. No deleted message is reinserted into Postbox. Existing stored settings/records decode with defaults for the new fields. Validation results will be recorded after GitHub Actions completes.
 
 The 2.1 marker identity is encoded as an optional signed Int64 (exposed as UInt32 in memory), because AdaptedPostboxEncoder does not support unsigned integer encoding. A real Postbox round-trip test covers UInt32.max; JSON-only tests cannot exercise this storage contract.
+
+
+### BYPlugin 2.2 local media retention
+
+Replay deletion/edit and StoredMessageConfirmation pass their existing MediaBox into BYMessageHistory. Complete immutable resources are hard-linked to an account-local archive before upstream deletion/expiry; canonical messages, pts/qts, read receipts and hole handling retain their upstream behavior. Media is never reinserted into Postbox. Local retained rows have no server-side reply/reaction/read effects.
+
+Managed autoremove captures incoming cloud timed content immediately before deletion/media expiry. Local/remote consumption capture before replacement; viewers watch already-requested resources while visible. Paid and secret content are excluded. BYRetainedMessage reconstructs local-resource-only presentation from bounded Postbox-encoded media/author data. Manual history clearing removes links after the preference transaction commits; open previews own an independent link.
+
+Storage admission is bounded to 2 GiB / 5,000 files; ledger remains 500 records / 10 versions / 2 MiB. Ordinary history ages out; retained timed records require explicit removal and cannot be evicted to admit another retained record. Unavailable bytes remain an explicit missing-file entry.
+
+Pinned by BYPrivacyHistoryTests replay/media-cache removal, actual managed autoremove/autoclear, remote view-once consumption, paid/off/outgoing exclusions, and missing-file projection; host tests cover link lifetime, quotas, account isolation and path validation. The GitHub suite additionally disables media capture and the timer hook separately to require a failing regression test, then restores each. New 2.2 validation is pending the current branch's Actions results; 2.1 test/build results do not validate these additions.

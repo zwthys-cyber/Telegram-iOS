@@ -6,6 +6,7 @@ import SwiftSignalKit
 func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, messageId: MessageId) -> Signal<Void, NoError> {
     return postbox.transaction { transaction -> Void in
         if let message = transaction.getMessage(messageId), message.flags.contains(.Incoming) {
+            byCaptureTimedMessage(transaction: transaction, mediaBox: postbox.mediaBox, message: message)
             let hasTimer = message.attributes.contains { $0 is AutoclearTimeoutMessageAttribute || $0 is AutoremoveTimeoutMessageAttribute }
             if !hasTimer && message.paidContent == nil && bySuppressRead(transaction: transaction, peerId: messageId.peerId) { return }
             var updateMessage = false
@@ -175,8 +176,9 @@ func _internal_markReactionsOrPollVotesAsSeenInteractively(postbox: Postbox, mes
     }
 }
 
-func markMessageContentAsConsumedRemotely(transaction: Transaction, messageId: MessageId, consumeDate: Int32?) {
+func markMessageContentAsConsumedRemotely(transaction: Transaction, mediaBox: MediaBox?, messageId: MessageId, consumeDate: Int32?) {
     if let message = transaction.getMessage(messageId) {
+        if let mediaBox { byCaptureTimedMessage(transaction: transaction, mediaBox: mediaBox, message: message) }
         var updateMessage = false
         var updatedAttributes = message.attributes
         var updatedMedia = message.media

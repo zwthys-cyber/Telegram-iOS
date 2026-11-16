@@ -500,7 +500,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         return .single(ContextController.Items(content: .list([])))
     }
     if let message = messages.first, let notice = message.byLocalNotice {
-        let title = i18n("Settings.BYPlugin." + (notice.kind == .deleted ? "History.Marker" : "Ads.Folded"), chatPresentationInterfaceState.strings.baseLanguageCode)
+        let title = i18n("Settings.BYPlugin." + (notice.kind == .promotion ? "Ads.Folded" : (notice.kind == .retained ? "History.Retained" : "History.Marker")), chatPresentationInterfaceState.strings.baseLanguageCode)
         let action = ContextMenuActionItem(text: title, icon: { theme in
             generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Replies"), color: theme.actionSheet.primaryTextColor)
         }, action: { c, f in

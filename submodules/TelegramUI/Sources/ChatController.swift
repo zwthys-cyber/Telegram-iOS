@@ -1898,12 +1898,14 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             }
             self.openMessageContextMenu(message: EngineMessage(message), selectAll: selectAll, node: node, frame: frame, anyRecognizer: anyRecognizer, location: location)
         }, openMessageReactionContextMenu: { [weak self] message, sourceView, gesture, value in
+            guard message.byLocalNotice == nil else { return }
             guard let self else {
                 return
             }
             
             self.openMessageReactionContextMenu(message: EngineMessage(message), sourceView: sourceView, gesture: gesture, value: value)
         }, updateMessageReaction: { [weak self] initialMessage, reaction, force, sourceView in
+            guard initialMessage.byLocalNotice == nil else { return }
             guard let strongSelf = self else {
                 return
             }
@@ -11762,6 +11764,14 @@ private extension ChatControllerImpl {
         switch notice.kind {
         case .deleted:
             (self.effectiveNavigationController)?.pushViewController(byMessageHistoryController(context: self.context, recordKey: notice.recordKey))
+        case .retained:
+            let controller: ViewController
+            if message.media.contains(where: { $0 is TelegramMediaImage || $0 is TelegramMediaFile }) {
+                controller = byMessageHistoryMediaController(context: self.context, recordKey: notice.recordKey)
+            } else {
+                controller = byMessageHistoryController(context: self.context, recordKey: notice.recordKey)
+            }
+            self.effectiveNavigationController?.pushViewController(controller)
         case .promotion:
             BYPromotionFilter.reveal(accountId: self.context.account.peerId.toInt64(), peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, messageId: message.id.id)
         }

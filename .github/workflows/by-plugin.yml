@@ -54,9 +54,9 @@ jobs:
           import json
           from pathlib import Path
           metadata = json.loads(Path("build/plugin/plugin.json").read_text())
-          assert metadata["feature_flags"] == 4095, "Release dylib is missing BYPlugin 2.1 features"
+          assert metadata["feature_flags"] == 16383, "Release dylib is missing BYPlugin 2.2 features"
           assert metadata["host_abi"] == 1
-          print("Packaged BYPlugin 2.1 feature mask verified:", metadata["feature_flags"])
+          print("Packaged BYPlugin 2.2 feature mask verified:", metadata["feature_flags"])
           PY
       - uses: actions/upload-artifact@v4
         with:

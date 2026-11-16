@@ -284,7 +284,7 @@
 "Settings.BYPlugin.History.Open" = "查看与搜索历史";
 "Settings.BYPlugin.History.Retention" = "历史保留期限";
 "Settings.BYPlugin.History.Days" = "天";
-"Settings.BYPlugin.History.Notice" = "需手动开启，仅当前账号生效。在删除或编辑前记录本机已接收的云端消息文字、说明和附件信息。最多 500 条消息、每条 10 个版本、总计 2 MiB，优先清理最早的记录。不归档媒体文件本体、付费及阅后即焚内容，无法恢复此前已丢失的内容。关闭开关停止新增；清理按钮删除已存历史。";
+"Settings.BYPlugin.History.Notice" = "仅当前账号生效。最多 500 条记录、每条 10 个版本，文字与信息共 2 MiB。已完整下载的媒体单独保存，上限 2 GiB / 5000 个文件。单独开启阅后即焚保留后，收到的计时及一次性内容会继续在原聊天显示本地副本，不按天数自动清理，需手动删除。存储满后停止新增；无法恢复此前丢失或从未下载的文件。付费内容及秘密聊天到期处理不变。关闭开关不删除已有历史，清理按钮会删除历史及其媒体。";
 "Settings.BYPlugin.History.Search" = "搜索文字、聊天或发送者";
 "Settings.BYPlugin.History.DeletedOnly" = "只看已撤回消息";
 "Settings.BYPlugin.History.Deleted" = "已撤回";
@@ -337,3 +337,15 @@
 "Settings.BYPlugin.Ads.Empty" = "暂无过滤规则。";
 "Settings.BYPlugin.Ads.Notice" = "屏蔽频道、机器人、视频和搜索中的官方赞助广告。群组／频道的普通推广帖按自定义规则折叠，点击可展开。过滤仅改变本机聊天显示，不处理通知或删除云端消息。付费、阅后即焚及一次性媒体保持现有处理方式。";
 "Settings.BYPlugin.Ads.Folded" = "已折叠推广消息 · 点击展开";
+
+"Settings.BYPlugin.History.KeepMedia" = "保存消息历史中的媒体";
+"Settings.BYPlugin.History.RetainTimed" = "原聊天保留收到的阅后即焚内容";
+"Settings.BYPlugin.History.Retained" = "已保留到本机";
+"Settings.BYPlugin.History.RetainedMarker" = "本地保留 · 仅你可见";
+"Settings.BYPlugin.History.OpenAttachment" = "打开 / 导出";
+"Settings.BYPlugin.History.LoadingAttachment" = "正在打开本地文件…";
+"Settings.BYPlugin.History.MediaUnavailable" = "未取得完整文件，或存储已满。无法仅凭附件 ID 恢复内容。";
+"Settings.BYPlugin.History.MediaNotSaved" = "这条旧记录只保存了附件信息。";
+"Settings.BYPlugin.History.MediaUsage" = "本地媒体占用";
+"Settings.BYPlugin.Status.ActiveV22" = "BYPlugin 2.2 已启用";
+"Settings.BYPlugin.Status.LegacyV22" = "检测到旧版插件；注入 BYPlugin 2.2 后可启用媒体保留。";

@@ -16,7 +16,7 @@ private enum BYSection: Int32, SGItemListSection {
 private enum BYToggle: Hashable {
     case localSaving, saveMenu, json, seconds, quickTranslate
     case ghost, online, typing, reads, stories, deleted, edits
-    case toolbar, hidePhone, confirmCalls, markers, sponsored, promotions
+    case toolbar, hidePhone, confirmCalls, markers, sponsored, promotions, keepMedia, retainTimed
 }
 private enum BYSelector: Hashable { case downloadMode, retention }
 private typealias BYEntry = SGItemListUIEntry<BYSection, BYToggle, Int, BYSelector, Int, Int>
@@ -51,6 +51,8 @@ func byPluginSettingsController(context: AccountContext, updated: @escaping () -
                     case .markers: options.showDeletedMarkers = value
                     case .sponsored: options.hideSponsoredMessages = value
                     case .promotions: options.filterPromotions = value
+                    case .keepMedia: options.keepMedia = value
+                    case .retainTimed: options.retainTimed = value
                     default: break
                     }
                 }
@@ -93,11 +95,11 @@ func byPluginSettingsController(context: AccountContext, updated: @escaping () -
         let options = BYPrivacy.saved(accountId)
         let ghostAvailable = BYPlugin.isEnabled(.ghostMode)
         let historyAvailable = BYPlugin.isEnabled(.messageHistory)
-        let status = !BYPlugin.available ? "Missing" : (ghostAvailable && historyAvailable && BYPlugin.isEnabled(.chatPrivacy) && BYPlugin.isEnabled(.deletionMarkers) && BYPlugin.isEnabled(.adBlock) ? "ActiveV21" : "LegacyV21")
-        let capabilities: [(String, BYPlugin.Feature)] = [("Capability.Icons", .icons), ("Capability.Tools", .messageTools), ("Capability.Local", .localFeatures), ("Capability.Downloads", .downloadBoost), ("Capability.Storage", .privateStorage), ("Capability.Login", .loginRestart), ("Chat.Title", .chatPrivacy), ("History.Markers", .deletionMarkers), ("Ads.Title", .adBlock)]
+        let status = !BYPlugin.available ? "Missing" : (ghostAvailable && historyAvailable && BYPlugin.isEnabled(.chatPrivacy) && BYPlugin.isEnabled(.deletionMarkers) && BYPlugin.isEnabled(.adBlock) && BYPlugin.isEnabled(.mediaHistory) && BYPlugin.isEnabled(.retainTimed) ? "ActiveV22" : "LegacyV22")
+        let capabilities: [(String, BYPlugin.Feature)] = [("Capability.Icons", .icons), ("Capability.Tools", .messageTools), ("Capability.Local", .localFeatures), ("Capability.Downloads", .downloadBoost), ("Capability.Storage", .privateStorage), ("Capability.Login", .loginRestart), ("Chat.Title", .chatPrivacy), ("History.Markers", .deletionMarkers), ("Ads.Title", .adBlock), ("History.KeepMedia", .mediaHistory), ("History.RetainTimed", .retainTimed)]
         let capabilityText = capabilities.map { tr($0.0) + ": " + tr(BYPlugin.isEnabled($0.1) ? "Available" : "Unavailable") }.joined(separator: "\n")
         let entries: [BYEntry] = [
-            .header(id: 1, section: .status, text: "BYPlugin 2.1", badge: nil),
+            .header(id: 1, section: .status, text: "BYPlugin 2.2", badge: nil),
             .notice(id: 2, section: .status, text: tr("Status." + status)),
             .header(id: 10, section: .ghost, text: tr("Ghost.Title"), badge: nil),
             .toggle(id: 11, section: .ghost, settingName: .ghost, value: options.anyGhostEnabled, text: tr("Ghost.Master"), enabled: ghostAvailable),
@@ -115,6 +117,8 @@ func byPluginSettingsController(context: AccountContext, updated: @escaping () -
             .notice(id: 25, section: .history, text: tr("History.Notice")),
             .toggle(id: 26, section: .history, settingName: .markers, value: options.showDeletedMarkers, text: tr("History.Markers"), enabled: historyAvailable && options.keepDeleted && BYPlugin.isEnabled(.deletionMarkers)),
             .notice(id: 27, section: .history, text: tr("History.MarkerNotice")),
+            .toggle(id: 28, section: .history, settingName: .keepMedia, value: options.keepMedia, text: tr("History.KeepMedia"), enabled: historyAvailable && BYPlugin.isEnabled(.mediaHistory)),
+            .toggle(id: 29, section: .history, settingName: .retainTimed, value: options.retainTimed, text: tr("History.RetainTimed"), enabled: BYPlugin.isEnabled(.retainTimed)),
             .header(id: 30, section: .saving, text: tr("LocalSaving"), badge: nil),
             .toggle(id: 31, section: .saving, settingName: .localSaving, value: SGSimpleSettings.shared.byLocalSaving, text: tr("LocalSaving"), enabled: BYPlugin.isEnabled(.localSaving)),
             .toggle(id: 32, section: .saving, settingName: .saveMenu, value: SGSimpleSettings.shared.contextShowSaveMedia, text: tr("SaveMenu"), enabled: true),

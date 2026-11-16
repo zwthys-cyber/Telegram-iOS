@@ -139,6 +139,14 @@ func chatHistoryEntriesForView(
     func byNoticeEntry(_ message: Message) -> ChatHistoryEntry {
         return .MessageEntry(message, presentationData, true, nil, .none, ChatMessageEntryAttributes())
     }
+    func byRetainedEntry(_ record: BYHistoryRecord, stableId: UInt32, peer: Peer?) -> ChatHistoryEntry? {
+        guard let message = context.engine.messages.byRetainedHistoryMessage(
+            record: record, stableId: stableId, chatPeer: peer.map(EnginePeer.init),
+            noticeText: i18n("Settings.BYPlugin.History.RetainedMarker", presentationData.strings.baseLanguageCode),
+            missingMediaText: i18n("Settings.BYPlugin.History.MediaUnavailable", presentationData.strings.baseLanguageCode)
+        ) else { return nil }
+        return byNoticeEntry(message._asMessage())
+    }
     var entries: [ChatHistoryEntry] = []
     var adminRanks: [PeerId: CachedChannelAdminRank] = [:]
     var stickersEnabled = true
@@ -250,6 +258,14 @@ func chatHistoryEntriesForView(
         }
         
         count += 1
+
+        if byNoticesEnabled && byOptions.retainTimed,
+           message.media.contains(where: { $0 is TelegramMediaExpiredContent }),
+           let record = byHistoryLedger.records.first(where: { $0.retainedTimed == true && $0.peerId == message.id.peerId.toInt64() && $0.namespace == message.id.namespace && $0.messageId == message.id.id }),
+           let retainedEntry = byRetainedEntry(record, stableId: message.stableId, peer: chatPeer) {
+            entries.append(retainedEntry)
+            continue loop
+        }
 
         // Fold only ordinary incoming group/channel posts. The original remains in Postbox.
         if byNoticesEnabled && byOptions.filterPromotions,
@@ -767,7 +783,7 @@ func chatHistoryEntriesForView(
             }
         }
         
-        if byNoticesEnabled && byOptions.keepDeleted && byOptions.showDeletedMarkers,
+        if byNoticesEnabled && ((byOptions.keepDeleted && byOptions.showDeletedMarkers) || byOptions.retainTimed),
            !view.isLoading, let peerId = location.peerId, peerId.namespace != Namespaces.Peer.SecretChat {
             let cloudMessages = view.entries.map(\.message).filter { $0.id.peerId == peerId && $0.id.namespace == Namespaces.Message.Cloud }
             let lowerBounded = view.earlierId != nil || view.holeEarlier
@@ -779,7 +795,8 @@ func chatHistoryEntriesForView(
                     peerId: peerId.toInt64(), namespace: Namespaces.Message.Cloud, threadId: location.threadId,
                     lower: lowerBounded ? positions.min() : nil, upper: upperBounded ? positions.max() : nil,
                     existingMessageIds: Set(cloudMessages.map { $0.id.id }),
-                    now: Int64(Date().timeIntervalSince1970), days: byOptions.historyDays
+                    now: Int64(Date().timeIntervalSince1970), days: byOptions.historyDays,
+                    includeDeleted: byOptions.keepDeleted && byOptions.showDeletedMarkers, includeRetainedTimed: byOptions.retainTimed
                 )
                 var occupiedStableIds = Set(view.entries.map { $0.message.stableId })
                 for record in records {
@@ -787,7 +804,11 @@ func chatHistoryEntriesForView(
                     if pendingRemovedMessages.contains(id) { continue }
                     let stableId = currentState.byMarkerStableId(record, occupied: occupiedStableIds)
                     occupiedStableIds.insert(stableId)
-                    entries.append(byNoticeEntry(byNotice(id: id, stableId: stableId, timestamp: record.sentAt, threadId: record.threadId, kind: .deleted, key: record.key)))
+                    if record.retainedTimed == true && byOptions.retainTimed, let retainedEntry = byRetainedEntry(record, stableId: stableId, peer: chatPeer) {
+                        entries.append(retainedEntry)
+                    } else {
+                        entries.append(byNoticeEntry(byNotice(id: id, stableId: stableId, timestamp: record.sentAt, threadId: record.threadId, kind: .deleted, key: record.key)))
+                    }
                 }
                 entries.sort()
             }

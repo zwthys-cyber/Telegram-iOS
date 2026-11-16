@@ -31,11 +31,11 @@ jobs:
           import json
           from pathlib import Path
           metadata = json.loads(Path("build/plugin/plugin.json").read_text())
-          assert metadata["feature_flags"] == 4095
+          assert metadata["feature_flags"] == 16383
           assert metadata["host_abi"] == 1
-          print("Actual release packaging enables all BYPlugin 2.1 feature bits.")
+          print("Actual release packaging enables all BYPlugin 2.2 feature bits.")
           PY
-          if BY_PLUGIN_FEATURES=4096 bash Plugins/BYPlugin/build.sh build/invalid-plugin; then
+          if BY_PLUGIN_FEATURES=16384 bash Plugins/BYPlugin/build.sh build/invalid-plugin; then
             echo "Out-of-range plugin features must be rejected." >&2
             exit 1
           fi

@@ -55,6 +55,47 @@ struct HistoryTests {
         object.removeValue(forKey: "originalStableId")
         let legacyRecord = try JSONDecoder().decode(BYHistoryRecord.self, from: JSONSerialization.data(withJSONObject: object))
         precondition(legacyRecord.messageId == 11 && legacyRecord.threadId == nil && legacyRecord.originalStableId == nil)
+
+        // Retained timed content survives age pruning and is never silently evicted for a new capture.
+        var retained = BYHistoryLedger()
+        for id: Int32 in 0 ..< 500 {
+            var value = snapshot(20, id, "kept")
+            value.retainedTimed = true
+            precondition(retained.record(value, editedTo: nil, deleted: false, now: now, days: 7))
+        }
+        retained.prune(now: now + 365 * 86400, days: 7)
+        precondition(retained.records.count == 500)
+        let before = retained
+        var excess = snapshot(20, 501, "over capacity")
+        excess.retainedTimed = true
+        precondition(!retained.record(excess, editedTo: nil, deleted: false, now: now, days: 7))
+        precondition(retained == before)
+        precondition(retained.deletionMarkers(peerId: 20, namespace: 0, threadId: nil, lower: nil, upper: nil, existingMessageIds: [1], now: now + 365 * 86400, days: 7, includeDeleted: false, includeRetainedTimed: true).count == 499)
+        precondition(retained.deletionMarkers(peerId: 21, namespace: 0, threadId: nil, lower: nil, upper: nil, existingMessageIds: [], now: now, days: 7, includeDeleted: false, includeRetainedTimed: true).isEmpty)
+        let low = BYHistoryAttachment(resourceId: "thumb", fileName: "Photo.jpg", mimeType: "image/jpeg", localId: "low.jpg", byteCount: 10, mediaData: Data([1, 2, 3]))
+        let high = BYHistoryAttachment(resourceId: "full", fileName: "Photo.jpg", mimeType: "image/jpeg", localId: "high.jpg", byteCount: 100, mediaData: Data([4, 5]))
+        let missing = BYHistoryAttachment(resourceId: "full", fileName: "Photo.jpg", mimeType: "image/jpeg", localId: nil, byteCount: 0)
+        var version = BYHistoryVersion(text: "", media: ["photo"], timestamp: now, attachments: [low])
+        version.mergeAttachments(from: BYHistoryVersion(text: "", media: ["photo"], timestamp: now, attachments: [high]))
+        version.mergeAttachments(from: BYHistoryVersion(text: "", media: ["photo"], timestamp: now, attachments: [missing]))
+        precondition(version.attachments == [high])
+        precondition(try! JSONDecoder().decode(BYHistoryVersion.self, from: JSONEncoder().encode(version)) == version)
+        var legacyVersion = try JSONSerialization.jsonObject(with: JSONEncoder().encode(version)) as! [String: Any]
+        legacyVersion.removeValue(forKey: "attachments")
+        precondition(try! JSONDecoder().decode(BYHistoryVersion.self, from: JSONSerialization.data(withJSONObject: legacyVersion)).attachments == nil)
+        var bytesLedger = BYHistoryLedger()
+        for id: Int32 in 0 ..< 200 {
+            var value = snapshot(30, id, String(repeating: "文", count: 16384))
+            value.retainedTimed = true
+            let prior = bytesLedger
+            if !bytesLedger.record(value, editedTo: nil, deleted: false, now: now, days: 7) {
+                precondition(bytesLedger == prior)
+                break
+            }
+        }
+        precondition(bytesLedger.records.count < 200)
+        precondition(try! JSONEncoder().encode(bytesLedger).count <= BYHistoryLedger.maximumBytes)
+
         print("History: persistence, search, namespace isolation, versions, retention, byte budget and deletion-marker windows passed")
     }
 }

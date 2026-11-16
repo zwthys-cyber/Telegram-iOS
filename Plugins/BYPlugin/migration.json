@@ -66,8 +66,14 @@
     "Swiftgram/SGSettingsUI/Sources/BYChatPrivacyController.swift",
     "submodules/TelegramUI/Sources/ChatHistoryEntriesForView.swift",
     "submodules/TelegramUI/Sources/ChatHistoryListNode.swift",
-    "submodules/TelegramUI/Sources/ChatController.swift"
+    "submodules/TelegramUI/Sources/ChatController.swift",
+    "Swiftgram/SGSimpleSettings/Sources/BYHistoryMediaStorage.swift",
+    "submodules/TelegramCore/Sources/Utils/BYRetainedMessage.swift",
+    "submodules/TelegramCore/Sources/State/ManagedAutoremoveMessageOperations.swift",
+    "submodules/TelegramCore/Sources/State/Sync/StateReplay+ReadStates.swift",
+    "Swiftgram/SGSettingsUI/Sources/BYHistoryMediaPreviewController.swift",
+    "submodules/TelegramCore/Sources/State/ProcessSecretChatIncomingDecryptedOperations.swift"
   ],
   "verification": "See GitHub Actions for actual results; device installation is not implied.",
-  "plugin_version": "2.1"
+  "plugin_version": "2.2"
 }

@@ -1,5 +1,22 @@
 # BYPlugin — 全能签注入插件
 
+
+## BYPlugin 2.2 — media history and retained timed content
+
+The prior 2.1 ledger saved attachment descriptions only. New opt-in history captures complete, already available photo/video/document resources into an account-local archive using hard links. Entries offer Quick Look and export. Old metadata-only records cannot recover missing bytes.
+
+Settings → BYPlugin → Local message history:
+- Enable recalled/edited history, with “Save available media” on, to retain downloaded attachments at deletion/edit time.
+- Independently enable “Keep received timed media in this chat” to retain received cloud timed/view-once content. It defaults off. The viewer observes downloads already in progress; it starts no background download. Expiry and consumption still update canonical Postbox/server state. A presentation-only message shows the archived text/media at its original position, with a local-only label.
+- Timed copies survive the ordinary 7/30/90-day cleanup. Manually delete a record or clear history to remove its archived files. Turning capture off does not erase history.
+- Paid content remains excluded. Secret-chat expiry is unchanged. Files never downloaded, incomplete at capture, or already lost cannot be restored.
+- Limits per account: 500 records, 10 versions each, 2 MiB metadata, 2 GiB media / 5,000 files. At capacity, new captures may be rejected; retained timed records are not silently evicted.
+
+Use the matching 2.2 IPA and injected BYPlugin.dylib (ABI 1, feature mask 16383). Older ABI-1 plugins retain their earlier features; the new media and timed-retention gates require bits 4096 and 8192.
+
+Validation runs only in GitHub Actions on xcode-27 (macOS 27 / Xcode 27.1). Added real replay/cache-removal, timer, view-once, paid/off and projection tests; hard-link/quota/path tests; deliberate media/timer regression mutants. Build and runtime results must be read from the current commit's Actions runs. Device preview, export, chat scrolling and signer injection still require an installed-app check.
+
+
 配套主程序：本仓库的 Swiftgram 13.2.1 / BYPlugin Host ABI 1。插件是 arm64 iOS 动态库，不需要越狱、Substrate 或额外 Swift 运行库。
 
 ## GitHub 下载与全能签使用

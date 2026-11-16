@@ -17,6 +17,8 @@ public enum BYPlugin {
         case chatPrivacy = 512
         case deletionMarkers = 1024
         case adBlock = 2048
+        case mediaHistory = 4096
+        case retainTimed = 8192
     }
 
     private typealias UIntFunction = @convention(c) () -> UInt32
@@ -45,7 +47,7 @@ public enum BYPlugin {
         }
         let features = unsafeBitCast(featuresSymbol, to: UIntFunction.self)
         return Runtime(
-            features: features() & 4095,
+            features: features() & 16383,
             partSize: unsafeBitCast(partSymbol, to: PartFunction.self),
             pending: unsafeBitCast(pendingSymbol, to: PendingFunction.self)
         )
@@ -148,12 +150,14 @@ public struct BYAccountOptions: Codable, Equatable {
     public var showDeletedMarkers = true
     public var hideSponsoredMessages = false
     public var filterPromotions = false
+    public var keepMedia = true
+    public var retainTimed = false
     public var promotionKeywords: [String] = []
 
     public init() {}
     private enum CodingKeys: String, CodingKey {
         case hideOnline, hideTyping, hideReadReceipts, hideStoryViews, keepDeleted, keepEdits, historyDays
-        case showDeletedMarkers, hideSponsoredMessages, filterPromotions, promotionKeywords
+        case showDeletedMarkers, hideSponsoredMessages, filterPromotions, promotionKeywords, keepMedia, retainTimed
     }
     // Explicit defaults preserve all previously saved 2.0 options when new keys are absent.
     public init(from decoder: Decoder) throws {
@@ -168,6 +172,8 @@ public struct BYAccountOptions: Codable, Equatable {
         self.showDeletedMarkers = try c.decodeIfPresent(Bool.self, forKey: .showDeletedMarkers) ?? true
         self.hideSponsoredMessages = try c.decodeIfPresent(Bool.self, forKey: .hideSponsoredMessages) ?? false
         self.filterPromotions = try c.decodeIfPresent(Bool.self, forKey: .filterPromotions) ?? false
+        self.keepMedia = try c.decodeIfPresent(Bool.self, forKey: .keepMedia) ?? true
+        self.retainTimed = try c.decodeIfPresent(Bool.self, forKey: .retainTimed) ?? false
         self.promotionKeywords = BYPromotionFilter.normalized(try c.decodeIfPresent([String].self, forKey: .promotionKeywords) ?? [])
     }
     public var anyGhostEnabled: Bool {
@@ -266,6 +272,8 @@ public enum BYPrivacy {
             options.keepEdits = false
         }
         if !BYPlugin.isEnabled(.deletionMarkers) { options.showDeletedMarkers = false }
+        if !BYPlugin.isEnabled(.mediaHistory) { options.keepMedia = false }
+        if !BYPlugin.isEnabled(.retainTimed) { options.retainTimed = false }
         if !BYPlugin.isEnabled(.adBlock) {
             options.hideSponsoredMessages = false
             options.filterPromotions = false

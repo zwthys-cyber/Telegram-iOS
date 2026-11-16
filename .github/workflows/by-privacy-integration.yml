@@ -85,7 +85,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - uses: actions/cache/save@v4
-        if: ${{ always() && steps.cache.outputs.cache-hit != 'true' }}
+        if: ${{ always() && matrix.mode == 'suite' && steps.cache.outputs.cache-hit != 'true' }}
         continue-on-error: true
         with:
           path: ${{ runner.temp }}/bazel-cache
