@@ -804,7 +804,7 @@ func chatHistoryEntriesForView(
                     if pendingRemovedMessages.contains(id) { continue }
                     let stableId = currentState.byMarkerStableId(record, occupied: occupiedStableIds)
                     occupiedStableIds.insert(stableId)
-                    if record.retainedTimed == true && byOptions.retainTimed, let retainedEntry = byRetainedEntry(record, stableId: stableId, peer: chatPeer) {
+                    if (record.retainedTimed == true ? byOptions.retainTimed : (byOptions.keepDeleted && byOptions.keepMedia && byOptions.showDeletedMarkers)), let retainedEntry = byRetainedEntry(record, stableId: stableId, peer: chatPeer) {
                         entries.append(retainedEntry)
                     } else {
                         entries.append(byNoticeEntry(byNotice(id: id, stableId: stableId, timestamp: record.sentAt, threadId: record.threadId, kind: .deleted, key: record.key)))

@@ -1,0 +1,80 @@
+name: BY media presentation regression
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix/by-history-media-export]
+    paths:
+      - 'Swiftgram/SGSimpleSettings/**'
+      - 'submodules/TelegramCore/**'
+      - 'submodules/Postbox/**'
+      - 'Plugins/BYPlugin/Sources/**'
+      - 'Plugins/BYPlugin/Tests/**'
+      - 'Plugins/BYPlugin/test*.sh'
+      - 'Plugins/BYPlugin/BUILD'
+      - '.github/scripts/run_by_privacy_tests.py'
+      - '.github/scripts/verify_by_truth_log.py'
+      - '.github/scripts/test_by_truth_log.py'
+      - '.github/scripts/select_by_privacy_matrix.py'
+      - '.github/workflows/by-privacy-integration.yml'
+      - 'versions.json'
+      - 'MODULE.bazel*'
+      - '.bazelrc'
+permissions:
+  contents: read
+concurrency:
+  group: by-media-presentation
+  # Verify only the newest source revision; completed suite caches remain reusable.
+  cancel-in-progress: true
+jobs:
+  integration:
+    name: State sync - ${{ matrix.label }}
+    runs-on: xcode-27
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - {label: suite, mode: suite, first: 0, last: 0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: recursive
+      - name: Select upstream Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          xcodebuild -version
+          sw_vers
+      - name: Configure test host
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: |
+          python3 .github/scripts/configure_unsigned.py
+          python3 .github/scripts/configure_by_build.py
+      - uses: actions/cache/restore@v4
+        id: cache
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/bazel-cache
+          key: by-tests-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock', '.gitmodules') }}-${{ github.sha }}-${{ matrix.label }}
+          restore-keys: |
+            by-tests-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock', '.gitmodules') }}-
+            by-bazel-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock', '.gitmodules') }}-
+      - name: Run real Postbox and state synchronization tests
+        run: python3 -u .github/scripts/run_by_privacy_tests.py "${{ matrix.mode }}" "${{ matrix.first }}" "${{ matrix.last }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: by-privacy-tests-${{ matrix.label }}-${{ github.run_number }}-${{ github.run_attempt }}
+          path: build/privacy-tests/
+          if-no-files-found: warn
+          retention-days: 14
+      - uses: actions/cache/save@v4
+        if: ${{ always() && matrix.mode == 'suite' && steps.cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/bazel-cache
+          key: by-tests-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock', '.gitmodules') }}-${{ github.sha }}-${{ matrix.label }}
