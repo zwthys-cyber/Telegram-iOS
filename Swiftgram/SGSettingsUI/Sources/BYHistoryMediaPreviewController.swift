@@ -88,7 +88,11 @@ private final class BYHistoryMediaPreviewController: ViewController, QLPreviewCo
         guard let file = self.file else { return }
         let activity = UIActivityViewController(activityItems: [file.url], applicationActivities: nil)
         activity.completionWithItemsHandler = { [file] _, _, _, _ in withExtendedLifetime(file) {} }
-        activity.popoverPresentationController?.barButtonItem = self.navigationItem.rightBarButtonItem
+        if let popover = activity.popoverPresentationController {
+            // Display's navigation bar is custom; its UIBarButtonItem has no UIKit bar view.
+            popover.sourceView = self.view
+            popover.sourceRect = CGRect(x: max(0, self.view.bounds.width - 44), y: max(0, self.contentFrame.minY - 1), width: 1, height: 1)
+        }
         self.present(activity, animated: true)
     }
 
